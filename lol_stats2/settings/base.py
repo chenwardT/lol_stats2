@@ -38,6 +38,7 @@ INSTALLED_APPS = (
     'django_extensions',
     'debug_toolbar',
     'rest_framework',
+    'summoners',
 )
 
 RUNSERVERPLUS_SERVER_ADDRESS_PORT = '0.0.0.0:8000'
@@ -66,7 +67,7 @@ DATABASES = {
         'PORT': '5432',
         'NAME': 'lol_stats2',
         'USER': 'chen',
-        'PASSWORD': os.environ['PG_PASS'],
+        'PASSWORD': get_env_variable('PG_PASS'),
     }
 }
 
