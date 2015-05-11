@@ -35,5 +35,5 @@ You can follow suit for each virtualenv (production, staging, etc).
 Executing `manage.py runserver` should now reflect the environment-specific settings
 when starting up.
 
-You may also configure your SECRET_KEY environment variables via "postactivate" and
+You may also configure your SECRET_KEY and RIOT_API_KEY environment variables via "postactivate" and
 "predeactivate" scripts.
