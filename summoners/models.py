@@ -1,9 +1,13 @@
+import logging
+
 from django.db import models
+
+logger = logging.getLogger(__name__)
 
 
 class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
-        print("Creating summoner from: {}".format(attrs))
+        logger.info("Creating summoner from: {}".format(attrs))
         summoner = self.create(summoner_id=attrs['id'],
                                name=attrs['name'],
                                std_name=attrs['name'].replace(' ', '').lower(),
