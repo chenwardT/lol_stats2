@@ -1,8 +1,11 @@
+#lol_stats2
+
 ##Setup
 
 Install virtualenvwrapper if not already present:
 
-[http://virtualenvwrapper.readthedocs.org/en/latest/install.html#basic-installation](http://virtualenvwrapper.readthedocs.org/en/latest/install.html#basic-installation)
+[http://virtualenvwrapper.readthedocs.org/en/latest/install.html#basic-installation]
+(http://virtualenvwrapper.readthedocs.org/en/latest/install.html#basic-installation)
 
 Find out where python3 lives:
 
@@ -35,5 +38,26 @@ You can follow suit for each virtualenv (production, staging, etc).
 Executing `manage.py runserver` should now reflect the environment-specific settings
 when starting up.
 
-You may also configure your SECRET_KEY and RIOT_API_KEY environment variables via "postactivate" and
-"predeactivate" scripts.
+You may also configure your SECRET_KEY and RIOT_API_KEY environment variables via 
+"postactivate" and "predeactivate" scripts.
+
+##Tests
+
+If Selenium throws:
+
+`selenium.common.exceptions.WebDriverException: Message: The browser appears to have 
+exited before we could connect. If you specified a log_file in the FirefoxBinary
+constructor, check it for details.`
+
+...check the following things:
+
+- You have a DISPLAY environment variable set (:0 by default):
+
+    - `export DISPLAY=:0`
+
+- X is running on that display.
+
+- Someone may need to be logged into your X display manager.
+
+Alternatively, you can use pyvirtualdisplay if you are running in a headless
+configuration.
