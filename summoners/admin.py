@@ -4,4 +4,4 @@ from .models import Summoner
 
 @admin.register(Summoner)
 class SummonerAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('summoner_id', 'region', 'name', 'last_update')
