@@ -5,3 +5,5 @@ from .base import *
 DEBUG = True
 
 TEMPLATE_DEBUG = True
+
+INTERNAL_IPS = ['192.168.1.106']
