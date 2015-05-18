@@ -2,15 +2,19 @@ import logging
 
 from django.db import models
 
+# FIXME: Not logging, check arg to getLogger?
 logger = logging.getLogger(__name__)
 
+def standardize_name(name):
+        return name.replace(' ','').lower()
 
 class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
-        logger.info("Creating summoner from: {}".format(attrs))
+        logger.info("Creating summoner with region '{}' from: {}".format(region, attrs))
+
         summoner = self.create(summoner_id=attrs['id'],
                                name=attrs['name'],
-                               std_name=attrs['name'].replace(' ', '').lower(),
+                               std_name=standardize_name(attrs['name']),
                                profile_icon_id=attrs['profileIconId'],
                                revision_date=attrs['revisionDate'],
                                summoner_level=attrs['summonerLevel'],
@@ -43,6 +47,18 @@ class Summoner(models.Model):
     last_update = models.DateTimeField(auto_now=True)
 
     objects = SummonerManager()
+
+    def update_summoner(self, region, attrs):
+        logger.info("Updating summoner with region '{}' from: {}".format(region, attrs))
+
+        self.summoner_id = attrs['id']
+        self.name = attrs['name']
+        self.std_name = standardize_name(attrs['name'])
+        self.profile_icon_id = attrs['profileIconId']
+        self.revision_date = attrs['revisionDate']
+        self.summoner_level = attrs['summonerLevel']
+        self.region = region
+        self.save()
 
     class Meta:
         unique_together = ('summoner_id', 'region')
