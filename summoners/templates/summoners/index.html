@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>Summoners Index</title>
+</head>
+<body>
+Recently updated summoners:
+<ul>
+  {% for summoner in recent_summoners %}
+    <li>{{ summoner }}</li>
+  {% endfor %}
+</ul>
+</body>
+</html>
