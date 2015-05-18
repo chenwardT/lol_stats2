@@ -23,6 +23,9 @@ riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 
 @app.task
 def riot_api(fn, args):
+    """
+    A rate-limited task that queries the Riot API using a RiotWatcher instance.
+    """
     func = getattr(riot_watcher, fn)
     return func(**args)
 
@@ -33,6 +36,11 @@ app.control.rate_limit('lol_stats2.celery.riot_api', '50/m')
 
 @app.task
 def store_get_summoner(result, region):
+    """
+    Stores the result of RiotWatcher get_summoner calls.
+
+    See `link` argument of riot_api call in RiotAPI.get_summoner.
+    """
     query = Summoner.objects.filter(region=region, summoner_id=result['id'])
 
     if not query.exists():
