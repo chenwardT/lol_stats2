@@ -3,9 +3,11 @@ from django.contrib import admin
 from rest_framework import routers
 
 from summoners.views import SummonerViewSet, index, search, show, refresh
+from champions.views import ChampionViewSet
 
 router = routers.DefaultRouter()
 router.register(r'summoners', SummonerViewSet)
+router.register(r'champions', ChampionViewSet)
 
 admin.autodiscover()
 
