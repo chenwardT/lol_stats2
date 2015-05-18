@@ -39,6 +39,8 @@ INSTALLED_APPS = (
     'debug_toolbar',
     'rest_framework',
     'summoners',
+    'champions',
+    'games',
 )
 
 RUNSERVERPLUS_SERVER_ADDRESS_PORT = '0.0.0.0:8000'
