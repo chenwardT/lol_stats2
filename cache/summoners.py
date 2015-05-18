@@ -1,8 +1,5 @@
 """
-Management classes for data that is relied upon by user-facing pages.
-
-ex. Summary page for summoner A requires data on X, Y, and Z.
-    Ensure X, Y, Z is fresh data, if not then update whatever is stale.
+Management class for summoner data retrieval.
 """
 
 import logging
