@@ -2,7 +2,7 @@ import logging
 
 from django.db import models
 
-# FIXME: Not logging, check arg to getLogger?
+# FIXME: Not writing to file, but is displayed by Celery worker.
 logger = logging.getLogger(__name__)
 
 def standardize_name(name):
@@ -41,8 +41,12 @@ class Summoner(models.Model):
     # This is `name` as lowercase with spaces stripped.
     std_name = models.CharField(max_length=24)
     profile_icon_id = models.IntegerField()
-    revision_date = models.BigIntegerField()    # milliseconds epoch TS
-    summoner_level = models.IntegerField()      # 'long' in DTO, but we know it's <= 30
+
+    # milliseconds epoch TS since some things changed server side, see API docs
+    # Probably not useful for us since if this is accurate,
+    # then we already queried riot API.
+    revision_date = models.BigIntegerField()
+    summoner_level = models.IntegerField()      # 'long' in DTO, but we know it's [0,30]
     region = models.CharField(max_length=4)
     last_update = models.DateTimeField(auto_now=True)
 
