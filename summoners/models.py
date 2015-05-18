@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from django.db import models
 
@@ -6,7 +7,7 @@ from django.db import models
 logger = logging.getLogger(__name__)
 
 def standardize_name(name):
-        return name.replace(' ','').lower()
+        return name.replace(' ', '').lower()
 
 class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
@@ -25,10 +26,13 @@ class SummonerManager(models.Manager):
 class Summoner(models.Model):
     """Maps to Riot API summoner DTO.
 
-    Also contains:
+    Also contains fields for:
     -timestamp for when object was last updated.
     -standardized summoner name.
     """
+    # TODO: Set to something reasonable; 20 min?
+    CACHE_DURATION = timedelta(minutes=1)
+
     summoner_id = models.BigIntegerField()
 
     # The name as it appears in game.
