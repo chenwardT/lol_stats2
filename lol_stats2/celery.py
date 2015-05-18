@@ -4,6 +4,7 @@ from celery import Celery
 from riotwatcher.riotwatcher import RiotWatcher
 
 from summoners.models import Summoner
+from champions.models import Champion
 
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lol_stats2.settings.base')
@@ -34,12 +35,14 @@ def riot_api(fn, args):
 # 500 req / 10 min
 app.control.rate_limit('lol_stats2.celery.riot_api', '50/m')
 
+# TODO: Can these tasks be put in a class and passed around instead of individually?
 @app.task
 def store_get_summoner(result, region):
     """
     Stores the result of RiotWatcher get_summoner calls.
-
     See `link` argument of riot_api call in RiotAPI.get_summoner.
+
+    Returns the created/updated Summoner object.
     """
     query = Summoner.objects.filter(region=region, summoner_id=result['id'])
 
@@ -52,3 +55,28 @@ def store_get_summoner(result, region):
         summoner.update_summoner(region, result)
 
     return summoner
+
+@app.task
+def store_static_get_champion_list(result):
+    """
+    Stores the result of RiotWatcher static_get_champion_list calls.
+    See `link` argument of riot_api call in RiotAPI.static_get_champion_list.
+
+    Returns a list of Champion objects added (None if no additions).
+    """
+    query = Champion.objects.all()
+
+    created = []
+
+    if not query.exists():
+        # This must be a DB initialization, since the table is empty.
+        for attrs in result['data'].values():
+            created.append(Champion.objects.create_champion(attrs))
+    else:
+        # We have some champions in the DB, so we will only need to add new ones.
+        for attrs in result['data'].values():
+            # Compare by ID
+            if not Champion.objects.filter(champion_id=attrs['id']).exists():
+                created.append(Champion.objects.create_champion(attrs))
+
+    return created
