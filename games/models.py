@@ -124,17 +124,17 @@ class RawStat(models.Model):
     #         if getattr(self, i) is not None:
     #             yield '{}: {}'.format(inflection.humanize(i), getattr(self, i))
 
-    def belongs_to(self):
-        return Game.objects.get(stats=self).summoner_id
-
-    def champion_played(self):
-        return Game.objects.get(stats=self).champion_id
-
-    def game_id(self):
-        return Game.objects.get(stats=self).game_id
-
-    def region(self):
-        return Game.objects.get(stats=self).region
+    # def belongs_to(self):
+    #     return Game.objects.get(stats=self).summoner_id
+    #
+    # def champion_played(self):
+    #     return Game.objects.get(stats=self).champion_id
+    #
+    # def game_id(self):
+    #     return Game.objects.get(stats=self).game_id
+    #
+    # def region(self):
+    #     return Game.objects.get(stats=self).region
 
     def timestamp(self):
         return Game.objects.get(stats=self).create_date_str()
@@ -185,8 +185,8 @@ class Game(models.Model):
 
     objects = GameManager()
 
-    def __str__(self):
-        return '%s on %s (Team %d) [GID: %d]' % (self.summoner_id.name, self.champion_id, self.team_id, self.game_id)
+    # def __str__(self):
+    #     return '%s on %s (Team %d) [GID: %d]' % (self.summoner_id.name, self.champion_id, self.team_id, self.game_id)
 
     def create_date_str(self):
         """Convert create_date epoch milliseconds timestamp to human-readable date string."""
