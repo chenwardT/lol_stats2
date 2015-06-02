@@ -20,5 +20,5 @@ class ChampionManager:
     """
     @staticmethod
     def get_all():
-        logger.info('Champions - Create All')
+        logger.info('Champions - Get All')
         RiotAPI.static_get_champion_list()

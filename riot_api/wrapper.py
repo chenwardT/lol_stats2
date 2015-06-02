@@ -5,7 +5,8 @@ A wrapper for for the Celery task that uses the RiotWatcher instance.
 from lol_stats2.celery import (riot_api,
                                store_get_summoner,
                                store_static_get_champion_list,
-                               store_static_get_summoner_spell_list)
+                               store_static_get_summoner_spell_list,
+                               store_get_recent_games)
 
 # TODO: Lots of repetition of strings here.
 # Consider putting all "store" methods in a class.
@@ -39,3 +40,12 @@ class RiotAPI:
 
         job = riot_api.apply_async((func, kwargs),
                                    link=store_static_get_summoner_spell_list.s())
+
+    @staticmethod
+    def get_recent_games(summoner_id, region=None):
+        func = 'get_recent_games'
+        kwargs = {'summoner_id': summoner_id, 'region': region}
+
+        job = riot_api.apply_async((func, kwargs),
+                                   link=store_get_recent_games.s(summoner_id=summoner_id,
+                                                                 region=region))

@@ -22,6 +22,9 @@ class SummonerManager(models.Manager):
                                region=region)
         return summoner
 
+    def is_known(self, summoner, region):
+        return self.filter(region=region, std_name=standardize_name(summoner)).exists()
+
 
 class Summoner(models.Model):
     """Maps to Riot API summoner DTO.

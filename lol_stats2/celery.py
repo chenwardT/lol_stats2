@@ -13,6 +13,7 @@ from riotwatcher.riotwatcher import RiotWatcher
 from summoners.models import Summoner
 from champions.models import Champion
 from spells.models import SummonerSpell
+from games.models import Game
 
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lol_stats2.settings.base')
@@ -43,6 +44,7 @@ def riot_api(fn, args):
 # 500 req / 10 min
 app.control.rate_limit('lol_stats2.celery.riot_api', '50/m')
 
+# TODO: Consider renaming these tasks.
 # TODO: Can these tasks be put in a class and passed around instead of individually?
 @app.task
 def store_get_summoner(result, region):
@@ -92,7 +94,7 @@ def store_static_get_champion_list(result):
 # TODO: In testing, when this got ran repeatedly in a short period of time,
 # it looks like they can be run in parallel (we don't want that) as shown by
 # IntegrityError exceptions.
-# Considering locking DB when any of these types of tasks run.
+# One solution: locking DB when any of these types of tasks run.
 @app.task
 def store_static_get_summoner_spell_list(result):
     """
@@ -104,3 +106,18 @@ def store_static_get_summoner_spell_list(result):
 
     for attrs in result['data'].values():
         SummonerSpell.objects.create_spell(attrs)
+
+# TODO: Use game IDs to get match data.
+# This way, you get full participant data, instead of just the 1 player's items, etc.
+@app.task
+def store_get_recent_games(result, summoner_id, region):
+    """
+    Callback that stores the result of RiotWatcher get_recent_games calls.
+    """
+
+    for attrs in result['games']:
+        # We don't want to duplicate existing games, so compare each
+        # by game_id and region.
+        if not Game.objects.filter(game_id=attrs['gameId'],
+                                   region=region).exists():
+            Game.objects.create_game(attrs, summoner_id, region)

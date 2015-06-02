@@ -4,7 +4,6 @@ Management class for spell data retrieval.
 
 import logging
 
-from spells.models import SummonerSpell
 from riot_api.wrapper import RiotAPI
 
 logger = logging.getLogger(__name__)
