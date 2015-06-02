@@ -1,3 +1,10 @@
+"""
+Celery config and task definitions.
+
+To start worker, from lol_stats2 dir:
+celery -A lol_stats2 worker -l info
+"""
+
 import os
 
 from celery import Celery
@@ -5,6 +12,7 @@ from riotwatcher.riotwatcher import RiotWatcher
 
 from summoners.models import Summoner
 from champions.models import Champion
+from spells.models import SummonerSpell
 
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lol_stats2.settings.base')
@@ -39,7 +47,7 @@ app.control.rate_limit('lol_stats2.celery.riot_api', '50/m')
 @app.task
 def store_get_summoner(result, region):
     """
-    Stores the result of RiotWatcher get_summoner calls.
+    Callback that stores the result of RiotWatcher get_summoner calls.
     See `link` argument of riot_api call in RiotAPI.get_summoner.
 
     Returns the created/updated Summoner object.
@@ -59,7 +67,7 @@ def store_get_summoner(result, region):
 @app.task
 def store_static_get_champion_list(result):
     """
-    Stores the result of RiotWatcher static_get_champion_list calls.
+    Callback that stores the result of RiotWatcher static_get_champion_list calls.
     See `link` argument of riot_api call in RiotAPI.static_get_champion_list.
 
     Returns a list of Champion objects added (None if no additions).
@@ -80,3 +88,19 @@ def store_static_get_champion_list(result):
                 created.append(Champion.objects.create_champion(attrs))
 
     return created
+
+# TODO: In testing, when this got ran repeatedly in a short period of time,
+# it looks like they can be run in parallel (we don't want that) as shown by
+# IntegrityError exceptions.
+# Considering locking DB when any of these types of tasks run.
+@app.task
+def store_static_get_summoner_spell_list(result):
+    """
+    Callback that stores the result of RiotWatcher static_get_summoner_list calls.
+    Since there are only a handful of spells, we replace all spells w/the new data.
+    """
+
+    SummonerSpell.objects.all().delete()
+
+    for attrs in result['data'].values():
+        SummonerSpell.objects.create_spell(attrs)
