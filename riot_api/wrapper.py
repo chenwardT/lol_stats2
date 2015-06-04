@@ -6,7 +6,9 @@ from lol_stats2.celery import (riot_api,
                                store_get_summoner,
                                store_static_get_champion_list,
                                store_static_get_summoner_spell_list,
-                               store_get_recent_games)
+                               store_get_recent_games,
+                               store_get_challenger,
+                               store_get_league)
 
 # TODO: Lots of repetition of strings here.
 # Consider putting all "store" methods in a class.
@@ -49,3 +51,24 @@ class RiotAPI:
         job = riot_api.apply_async((func, kwargs),
                                    link=store_get_recent_games.s(summoner_id=summoner_id,
                                                                  region=region))
+
+    @staticmethod
+    def get_challenger(region=None):
+        func = 'get_challenger'
+        kwargs = {'region': region}
+
+        job = riot_api.apply_async((func, kwargs),
+                                   link=store_get_challenger.s(region=region))
+
+    @staticmethod
+    def get_league(summoner_id, region=None):
+        """
+        Gets a single summoner's league.
+
+        Note: RiotWatcher.get_league() can take multiple summoner IDs as well.
+        """
+        func = 'get_league'
+        kwargs = {'summoner_ids': [summoner_id], 'region': region}
+
+        job = riot_api.apply_async((func, kwargs),
+                                   link=store_get_league.s(summoner_id, region))

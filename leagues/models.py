@@ -1,6 +1,9 @@
+import logging
+
 from django.db import models
 
-# TODO: Cleanup.
+logger = logging.getLogger(__name__)
+
 class LeagueManager(models.Manager):
     def create_or_update_league(self, attrs, region):
         possibly_extant_league = self.filter(region=region,
@@ -13,16 +16,16 @@ class LeagueManager(models.Manager):
         else:
             self.create_league(attrs, region)
 
-    # TODO: Factor out creation of entries.
     def create_league(self, attrs, region):
         league = self.create(region=region, queue=attrs['queue'],
                              name=attrs['name'], tier=attrs['tier'])
-        for entry in attrs['entries']:
-            league.leagueentry_set.create_entry(entry)
+        logger.info('Creating league: {}'.format(league))
+        league.leagueentry_set.create_entries(attrs)
 
     def update_league(self, league, attrs, region):
-        for entry in attrs['entries']:
-            league.leagueentry_set.create_entry(entry)
+        logger.info('Updating league: {}'.format(league))
+        league.leagueentry_set.all().delete()
+        league.leagueentry_set.create_entries(attrs)
 
 class League(models.Model):
     """
@@ -55,6 +58,10 @@ class LeagueEntryManager(models.Manager):
                             player_or_team_name=attrs['playerOrTeamName'],
                             wins=attrs['wins'],
                             losses=attrs['losses'])
+
+    def create_entries(self, attrs):
+        for entry in attrs['entries']:
+            self.create_entry(entry)
 
 class LeagueEntry(models.Model):
     """

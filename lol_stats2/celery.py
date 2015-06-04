@@ -14,6 +14,7 @@ from summoners.models import Summoner
 from champions.models import Champion
 from spells.models import SummonerSpell
 from games.models import Game
+from leagues.models import League
 
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lol_stats2.settings.base')
@@ -121,3 +122,25 @@ def store_get_recent_games(result, summoner_id, region):
         if not Game.objects.filter(game_id=attrs['gameId'],
                                    region=region).exists():
             Game.objects.create_game(attrs, summoner_id, region)
+
+@app.task
+def store_get_challenger(result, region):
+    """
+    Callback that stores the result of RiotWatcher get_challenger calls.
+
+    Replaces the entirety of the challenger league.
+    """
+
+    League.objects.create_or_update_league(result, region)
+
+@app.task
+def store_get_league(result, summoner_id, region):
+    """
+    Callback that stores the result of the RiotWatcher get_league calls.
+    `summoner_id` is expected to be the single key of the `result` dict.
+
+    Stores a previously unknown league or replaces the entirety of the
+    summoner's league's entries if it was known.
+    """
+
+    League.objects.create_or_update_league(result[str(summoner_id)][0], region)
