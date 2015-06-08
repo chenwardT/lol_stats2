@@ -59,7 +59,7 @@ class Summoner(models.Model):
 
     objects = SummonerManager()
 
-    def update_summoner(self, region, attrs):
+    def update(self, region, attrs):
         logger.info("Updating summoner with region '{}' from: {}".format(region, attrs))
 
         self.summoner_id = attrs['id']
