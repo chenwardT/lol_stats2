@@ -63,9 +63,24 @@ def store_get_summoner(result, region):
     else:
         # Update
         summoner = query[0]
-        summoner.update_summoner(region, result)
+        summoner.update(region, result)
 
     return summoner
+
+@app.task
+def store_get_summoners(result, region):
+    """
+    Callback that stores the result of RiotWatcher get_summoners calls.
+    """
+    for summoner_id in result:
+        potentially_extant_summoner = Summoner.objects.filter(
+            summoner_id=summoner_id, region=region)
+
+        if potentially_extant_summoner.exists():
+            summoner = potentially_extant_summoner[0]
+            summoner.update(region, result[summoner_id])
+        else:
+            Summoner.objects.create_summoner(region, result[summoner_id])
 
 @app.task
 def store_static_get_champion_list(result):
