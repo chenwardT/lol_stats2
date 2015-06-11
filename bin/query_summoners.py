@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from riotwatcher.riotwatcher import RiotWatcher, NORTH_AMERICA
 
 # from lol_stats2.settings.development import get_env_variable
-from utils.utility_functions import chunks
+from utils.functions import chunks
 from summoners.models import Summoner
 
 MAX_IDS_PER_QUERY = 40
