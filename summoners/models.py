@@ -49,8 +49,9 @@ class Summoner(models.Model):
     std_name = models.CharField(max_length=24)
     profile_icon_id = models.IntegerField()
 
-    # milliseconds epoch TS since some things changed server side, see API docs
-    # Probably not useful for us since if this is accurate,
+    # Milliseconds epoch TS since something was updated about this summoner,
+    # see API docs.
+    # Probably not useful for us, since if this is accurate,
     # then we already queried riot API.
     revision_date = models.BigIntegerField()
     summoner_level = models.IntegerField()      # 'long' in DTO, but we know it's [0,30]
