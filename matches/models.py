@@ -18,6 +18,7 @@ from utils.mixins import (IterableDataFieldsMixin,
                           CreatebleFromAttrsMixin,
                           ParticipantFromAttrsMixin)
 from champions.models import Champion
+from summoners.models import Summoner
 
 # TODO: Create a means of creating/updating a model instance from dict
 # that automatically sets instance fields to None if their associated
@@ -43,8 +44,8 @@ class MatchDetailManager(CreatebleFromAttrsMixin, models.Manager):
         for p in attrs['participants']:
             match.participant_set.create_participant(p)
 
-        # for pi in attrs['participantIdentities']:
-        #     match.participant_identity_set.create_participant_identity(pi)
+        for pi in attrs['participantIdentities']:
+            match.participantidentity_set.create_participant_identity(pi)
 
         for t in attrs['teams']:
             match.team_set.create_team(t)
@@ -167,12 +168,23 @@ class ParticipantIdentityManager(CreatebleFromAttrsMixin, models.Manager):
     def create_participant_identity(self, attrs):
         participant_identity = self.create(**self.init_dict(attrs))
 
+        participant_identity.summoner = \
+            Summoner.objects.create_or_update_summoner_from_match(
+                participant_identity.match_detail.region, attrs['player'])
+
+        print('Created PI: {}\nfrom attrs: {}'.format(participant_identity, attrs))
+        return participant_identity
+
 class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
     participant_id = models.IntegerField()
 
+    summoner = models.ForeignKey(Summoner, blank=True, null=True)
     match_detail = models.ForeignKey(MatchDetail)
 
     objects = ParticipantIdentityManager()
+
+    def __str__(self):
+        return 'Participant {} in {}'.format(self.participant_id, self.match_detail)
 
 class TeamManager(CreatebleFromAttrsMixin, models.Manager):
     def create_team(self, attrs):
@@ -216,79 +228,6 @@ class Mastery(IterableDataFieldsMixin, models.Model):
     objects = MasteryManager()
 
 # TODO: Check above all previous fields for BigInt -> Int.
-
-# class ParticipantStatsManager(CreatebleFromAttrsMixin, models.Manager):
-#     def create_participant_stats(self, attrs):
-#         return self.create(**self.init_dict(attrs))
-#
-# class ParticipantStats(IterableDataFieldsMixin, models.Model):
-#     assists = models.IntegerField(null=True, blank=True)
-#     champ_level = models.IntegerField()
-#     #combat_player_score
-#     deaths = models.IntegerField(null=True, blank=True)
-#     double_kills = models.IntegerField(null=True, blank=True)
-#     first_blood_assist = models.BooleanField()
-#     first_blood_kill = models.BooleanField()
-#     first_inhibitor_assist = models.BooleanField()
-#     first_inhibitor_kill = models.BooleanField()
-#     first_tower_assist = models.BooleanField()
-#     first_tower_kill = models.BooleanField()
-#     gold_earned = models.IntegerField(null=True, blank=True)
-#     gold_spent = models.IntegerField(null=True, blank=True)
-#     inhibitor_kills = models.IntegerField(null=True, blank=True)
-#     item0 = models.IntegerField(null=True, blank=True)
-#     item1 = models.IntegerField(null=True, blank=True)
-#     item2 = models.IntegerField(null=True, blank=True)
-#     item3 = models.IntegerField(null=True, blank=True)
-#     item4 = models.IntegerField(null=True, blank=True)
-#     item5 = models.IntegerField(null=True, blank=True)
-#     item6 = models.IntegerField(null=True, blank=True)
-#     killing_sprees = models.IntegerField(null=True, blank=True)
-#     kills = models.IntegerField(null=True, blank=True)
-#     largest_critical_strike = models.IntegerField(null=True, blank=True)
-#     largest_killing_spree = models.IntegerField(null=True, blank=True)
-#     largest_multi_kill = models.IntegerField(null=True, blank=True)
-#     magic_damage_dealt = models.IntegerField(null=True, blank=True)
-#     magic_damage_dealt_to_champions = models.IntegerField(null=True, blank=True)
-#     magic_damage_taken = models.IntegerField(null=True, blank=True)
-#     minions_killed = models.IntegerField(null=True, blank=True)
-#     neutral_minions_killed = models.IntegerField(null=True, blank=True)
-#     neutral_minions_killed_enemy_jungle = models.IntegerField(null=True, blank=True)
-#     neutral_minions_killed_team_jungle = models.IntegerField(null=True, blank=True)
-#     # node_capture = models.IntegerField()
-#     # node_capture_assist = models.IntegerField()
-#     # node_neutralize = models.IntegerField()
-#     # node_neutralize_assist = models.IntegerField()
-#     # objective_player_score = models.IntegerField()
-#     penta_kills = models.IntegerField(null=True, blank=True)
-#     physical_damage_dealt = models.IntegerField(null=True, blank=True)
-#     physical_damage_dealt_to_champions = models.IntegerField(null=True, blank=True)
-#     physical_damage_taken = models.IntegerField(null=True, blank=True)
-#     quadra_kills = models.IntegerField(null=True, blank=True)
-#     sight_wards_bought_in_game = models.IntegerField(null=True, blank=True)
-#     # team_objective = models.IntegerField()
-#     total_damage_dealt = models.IntegerField(null=True, blank=True)
-#     total_damage_dealt_to_champions = models.IntegerField(null=True, blank=True)
-#     total_damage_taken = models.IntegerField(null=True, blank=True)
-#     total_heal = models.IntegerField(null=True, blank=True)
-#     # total_player_score = models.IntegerField()
-#     # total_score_rank = models.IntegerField()
-#     total_time_crowd_control_dealt = models.IntegerField(null=True, blank=True)
-#     total_units_healed = models.IntegerField(null=True, blank=True)
-#     tower_kills = models.IntegerField(null=True, blank=True)
-#     triple_kills = models.IntegerField(null=True, blank=True)
-#     true_damage_dealt = models.IntegerField(null=True, blank=True)
-#     true_damage_dealt_to_champions = models.IntegerField(null=True, blank=True)
-#     true_damage_taken = models.IntegerField(null=True, blank=True)
-#     unreal_kills = models.IntegerField(null=True, blank=True)
-#     vision_wards_bought_in_game = models.IntegerField(null=True, blank=True)
-#     wards_killed = models.IntegerField(null=True, blank=True)
-#     wards_placed = models.IntegerField(null=True, blank=True)
-#     winner = models.BooleanField()
-#
-#     # participant = models.OneToOneField(Participant)
-#
-#     objects = ParticipantStatsManager()
 
 class ParticipantTimeline(IterableDataFieldsMixin, models.Model):
     # ParticipantTimelineData types to be added later.
@@ -334,19 +273,17 @@ class Rune(IterableDataFieldsMixin, models.Model):
 
     objects = RuneManager()
 
-class PlayerManager(CreatebleFromAttrsMixin, models.Manager):
-    def create_player(self, attrs):
-        player = self.create(**self.init_dict(attrs))
-
-class Player(IterableDataFieldsMixin, models.Model):
-    match_history_uri = models.CharField(max_length=64)
-    profile_icon = models.IntegerField()
-    summoner_id = models.IntegerField()
-    summoner_name = models.CharField(max_length=24)
-
-    participant_identity = models.OneToOneField(ParticipantIdentity)
-
-    objects = PlayerManager()
+# class PlayerManager(CreatebleFromAttrsMixin, models.Manager):
+#     def create_player(self, attrs):
+#         return self.create(**self.init_dict(attrs))
+#
+# class Player(IterableDataFieldsMixin, models.Model):
+#     match_history_uri = models.CharField(max_length=64)
+#     profile_icon = models.IntegerField()
+#     summoner_id = models.IntegerField()
+#     summoner_name = models.CharField(max_length=24)
+#
+#     objects = PlayerManager()
 
 class BannedChampionManager(CreatebleFromAttrsMixin, models.Manager):
     def create_banned_champion(self, attrs):
