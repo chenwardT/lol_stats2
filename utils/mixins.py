@@ -76,11 +76,7 @@ class ParticipantFromAttrsMixin(object):
         native_fields_set = set(native_field_names)
 
         model_fields = [f for f in self.model.data_fields()]
-
-        all_fields_set = set()
-
-        for f in model_fields:
-            all_fields_set.add(f)
+        all_fields_set = set(model_fields)
 
         # ParticipantStats will always contain whatever isn't in Participant.
         stats_fields = all_fields_set - native_fields_set
