@@ -1,3 +1,21 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import (MatchDetail,
+                     Participant,
+                     ParticipantIdentity,
+                     Team,
+                     Timeline,
+                     Mastery,
+                     ParticipantStats,
+                     ParticipantTimeline,
+                     Rune,
+                     Player,
+                     BannedChampion,
+                     Frame,
+                     Event,
+                     ParticipantFrame,
+                     Position)
+
+@admin.register(MatchDetail)
+class MatchDetailAdmin(admin.ModelAdmin):
+    list_display = ('region', 'match_id', 'queue_type', 'match_date', 'match_version')
