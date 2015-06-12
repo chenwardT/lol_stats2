@@ -23,7 +23,7 @@ class SingleSummoner:
         self.summoner = None
 
     def is_known(self):
-        return Summoner.objects.is_known(summoner=self.std_name,
+        return Summoner.objects.is_known(name=self.std_name,
                                          region=self.region)
 
     def get_instance(self):

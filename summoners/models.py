@@ -13,18 +13,40 @@ class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
         logger.info("Creating summoner with region '{}' from: {}".format(region, attrs))
 
-        summoner = self.create(summoner_id=attrs['id'],
-                               name=attrs['name'],
-                               std_name=standardize_name(attrs['name']),
-                               profile_icon_id=attrs['profileIconId'],
-                               revision_date=attrs['revisionDate'],
-                               summoner_level=attrs['summonerLevel'],
-                               region=region)
+        return self.create(summoner_id=attrs['id'],
+                           name=attrs['name'],
+                           std_name=standardize_name(attrs['name']),
+                           profile_icon_id=attrs['profileIconId'],
+                           revision_date=attrs['revisionDate'],
+                           summoner_level=attrs['summonerLevel'],
+                           region=region)
+
+    def create_summoner_from_match(self, region, attrs):
+        return self.create(summoner_id=attrs['summonerId'],
+                           profile_icon_id=attrs['profileIcon'],
+                           name=attrs['summonerName'],
+                           std_name=standardize_name(attrs['summonerName']),
+                           region=region)
+
+    def create_or_update_summoner_from_match(self, region, attrs):
+        name = attrs['summonerName']
+
+        region = region.lower()
+
+        print('create_or_update, checking: [{}] {}'.format(region, name))
+
+        if self.is_known(name, region):
+            summoner = Summoner.objects.get(region=region, name=name)
+            print('Summoner known, updating: {}'.format(summoner))
+            summoner.update_from_match(attrs)
+        else:
+            summoner = self.create_summoner_from_match(region, attrs)
+            print('Summoner unknown, creating: {}'.format(summoner))
+
         return summoner
 
-    def is_known(self, summoner, region):
-        return self.filter(region=region, std_name=standardize_name(summoner)).exists()
-
+    def is_known(self, name, region):
+        return self.filter(region=region, std_name=standardize_name(name)).exists()
 
 class Summoner(models.Model):
     """Maps to Riot API summoner DTO.
@@ -53,8 +75,8 @@ class Summoner(models.Model):
     # see API docs.
     # Probably not useful for us, since if this is accurate,
     # then we already queried riot API.
-    revision_date = models.BigIntegerField()
-    summoner_level = models.IntegerField()      # 'long' in DTO, but we know it's [0,30]
+    revision_date = models.BigIntegerField(null=True, blank=True)
+    summoner_level = models.IntegerField(null=True, blank=True)
     region = models.CharField(max_length=4)
     last_update = models.DateTimeField(auto_now=True)
 
@@ -71,6 +93,10 @@ class Summoner(models.Model):
         self.summoner_level = attrs['summonerLevel']
         self.region = region
         self.save()
+
+    def update_from_match(self, attrs):
+        self.profile_icon_id = attrs['profileIcon']
+        self.name = attrs['summonerName']
 
     class Meta:
         unique_together = ('summoner_id', 'region')
