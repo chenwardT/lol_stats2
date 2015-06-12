@@ -9,18 +9,20 @@ One-to-one fields are on child models, unless that model is referred
 to by more than one kind of other model (e.g. Position).
 """
 
+from datetime import datetime
+
 from django.db import models
 from django.contrib.postgres import fields
 
-from utils.functions import underscore_dict
-from utils.mixins import IterableNonAutoFieldsMixin
+from utils.mixins import IterableDataFieldsMixin, CreatebleFromAttrsMixin
+from champions.models import Champion
 
 # TODO: Create a means of creating/updating a model instance from dict
 # that automatically sets instance fields to None if their associated
 # key isn't present in the dict. Must be able to ignore AutoFields (like id),
 # and call related model's creation methods.
 
-class MatchDetailManager(models.Manager):
+class MatchDetailManager(CreatebleFromAttrsMixin, models.Manager):
     def create_match(self, attrs):
         # match = self.create(map_id=attrs['mapId'],
         #                     match_creation=attrs['matchCreation'],
@@ -34,21 +36,20 @@ class MatchDetailManager(models.Manager):
         #                     region=attrs['region'],
         #                     season=attrs['season'])
 
-        # TODO: Extract this method into mixin we can include in
-        # other models.
-        model_fields = [f for f in self.model.non_autofields()]
-        underscore_attrs = underscore_dict(attrs)
-        init_dict = {}
+        match = self.create(**self.init_dict(attrs))
 
-        # Create an initialization dict that contains just the key-value
-        # pairs that are relevant to this model.
-        for k in model_fields:
-            init_dict[k] = underscore_attrs[k]
+        for p in attrs['participants']:
+            match.participant_set.create_participant(p)
 
-        match = self.create(**init_dict)
+        for pi in attrs['participantIdentities']:
+            match.participant_identity_set.create_participant_identity(pi)
 
+        for t in attrs['teams']:
+            match.team_set.create_team(t)
 
-class MatchDetail(IterableNonAutoFieldsMixin, models.Model):
+        return match
+
+class MatchDetail(IterableDataFieldsMixin, models.Model):
     map_id = models.IntegerField()                      # ex. 11
     match_creation = models.BigIntegerField()           # ex. 1432585774909
     match_duration = models.BigIntegerField()           # ex. 1854
@@ -63,17 +64,26 @@ class MatchDetail(IterableNonAutoFieldsMixin, models.Model):
 
     objects = MatchDetailManager()
 
-class ParticipantManager(models.Manager):
+    def __str__(self):
+        return '[{}] {}'.format(self.region, self.match_id)
+
+    def match_date(self):
+        return datetime.fromtimestamp(self.match_creation/1000)
+
+class ParticipantManager(CreatebleFromAttrsMixin, models.Manager):
     def create_participant(self, attrs):
-        # participant = self.create(champion_id=attrs['championId'],
-        #                           highest_achieved_season_tier=attrs[''])
+        participant = self.create(**self.init_dict(attrs))
 
-        # for f in self.model.non_autofields():
-        #     print(f)
-        pass
+        for m in attrs['masteries']:
+            participant.mastery_set.create_mastery(m)
+
+        for r in attrs['runes']:
+            participant.rune_set.create_rune(r)
+
+        # participant.participantstats.
 
 
-class Participant(IterableNonAutoFieldsMixin, models.Model):
+class Participant(IterableDataFieldsMixin, models.Model):
     champion_id = models.IntegerField()
     highest_achieved_season_tier = models.CharField(max_length=16, null=True, blank=True)
     participant_id = models.IntegerField()
@@ -81,16 +91,31 @@ class Participant(IterableNonAutoFieldsMixin, models.Model):
     spell2_id = models.IntegerField()
     team_id = models.IntegerField()
 
+    participant_stats = models.OneToOneField('ParticipantStats')
     match_detail = models.ForeignKey(MatchDetail)
 
     objects = ParticipantManager()
 
-class ParticipantIdentity(models.Model):
+    def __str__(self):
+        return '{} on team {}'.format(Champion.objects.get(champion_id=self.champion_id),
+                                      self.team_id)
+
+class ParticipantIdentityManager(CreatebleFromAttrsMixin, models.Manager):
+    def create_participant_identity(self, attrs):
+        participant_identity = self.create(**self.init_dict(attrs))
+
+class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
     participant_id = models.IntegerField()
 
     match_detail = models.ForeignKey(MatchDetail)
 
-class Team(models.Model):
+    objects = ParticipantIdentityManager()
+
+class TeamManager(CreatebleFromAttrsMixin, models.Manager):
+    def create_team(self, attrs):
+        team = self.create(**self.init_dict(attrs))
+
+class Team(IterableDataFieldsMixin, models.Model):
     baron_kills = models.IntegerField(null=True, blank=True)
     #dominion_victory_score
     dragon_kills = models.IntegerField(null=True, blank=True)
@@ -107,21 +132,33 @@ class Team(models.Model):
 
     match_detail = models.ForeignKey(MatchDetail)
 
-class Timeline(models.Model):
+    objects = TeamManager()
+
+class Timeline(IterableDataFieldsMixin, models.Model):
     frame_interval = models.BigIntegerField()
     # frames list
 
     match_detail = models.OneToOneField(MatchDetail)
 
-class Mastery(models.Model):
+class MasteryManager(CreatebleFromAttrsMixin, models.Manager):
+    def create_mastery(self, attrs):
+        mastery = self.create(**self.init_dict(attrs))
+
+class Mastery(IterableDataFieldsMixin, models.Model):
     mastery_id = models.BigIntegerField()
     rank = models.BigIntegerField()
 
     participant = models.ForeignKey(Participant)
 
+    objects = MasteryManager()
+
 # TODO: Check above all previous fields for BigInt -> Int.
 
-class ParticipantStats(models.Model):
+class ParticipantStatsManager(CreatebleFromAttrsMixin, models.Manager):
+    def create_participant_stats(self, attrs):
+        participant_stats = self.create(**self.init_dict(attrs))
+
+class ParticipantStats(IterableDataFieldsMixin, models.Model):
     assists = models.IntegerField(null=True, blank=True)
     champ_level = models.IntegerField()
     #combat_player_score
@@ -186,9 +223,11 @@ class ParticipantStats(models.Model):
     wards_placed = models.IntegerField(null=True, blank=True)
     winner = models.BooleanField()
 
-    participant = models.OneToOneField(Participant)
+    # participant = models.OneToOneField(Participant)
 
-class ParticipantTimeline(models.Model):
+    objects = ParticipantStatsManager()
+
+class ParticipantTimeline(IterableDataFieldsMixin, models.Model):
     # ParticipantTimelineData types to be added later.
     # ancient_golem_assists_per_min_counts
     # ancient_golem_kills_per_min_counts
@@ -220,13 +259,23 @@ class ParticipantTimeline(models.Model):
 
     participant = models.OneToOneField(Participant)
 
-class Rune(models.Model):
+class RuneManager(CreatebleFromAttrsMixin, models.Manager):
+    def create_rune(self, attrs):
+        rune = self.create(**self.init_dict(attrs))
+
+class Rune(IterableDataFieldsMixin, models.Model):
     rank = models.IntegerField()
     rune_id = models.IntegerField()
 
     participant = models.ForeignKey(Participant)
 
-class Player(models.Model):
+    objects = RuneManager()
+
+class PlayerManager(CreatebleFromAttrsMixin, models.Manager):
+    def create_player(self, attrs):
+        player = self.create(**self.init_dict(attrs))
+
+class Player(IterableDataFieldsMixin, models.Model):
     match_history_uri = models.CharField(max_length=64)
     profile_icon = models.IntegerField()
     summoner_id = models.IntegerField()
@@ -234,13 +283,21 @@ class Player(models.Model):
 
     participant_identity = models.OneToOneField(ParticipantIdentity)
 
-class BannedChampion(models.Model):
+    objects = PlayerManager()
+
+class BannedChampionManager(CreatebleFromAttrsMixin, models.Manager):
+    def create_banned_champion(self, attrs):
+        banned_champion = self.create(**self.init_dict(attrs))
+
+class BannedChampion(IterableDataFieldsMixin, models.Model):
     champion_id = models.IntegerField()
     pick_turn = models.IntegerField()
 
     team = models.ForeignKey(Team)
 
-class Frame(models.Model):
+    objects = BannedChampionManager()
+
+class Frame(IterableDataFieldsMixin, models.Model):
     #events
     #participant_frames
     timestamp = models.BigIntegerField()        # ms into the game the frame occurred
@@ -254,7 +311,7 @@ class Frame(models.Model):
 #     twenty_to_thirty = models.FloatField(null=True, blank=True)
 #     zero_to_ten = models.FloatField(null=True, blank=True)
 
-class Event(models.Model):
+class Event(IterableDataFieldsMixin, models.Model):
     # ascended_type
     assisting_participant_ids = fields.ArrayField(models.IntegerField())
     building_type = models.CharField(max_length=24)         # ex. INHIBITOR_BUILDING
@@ -279,7 +336,7 @@ class Event(models.Model):
 
     frame = models.ForeignKey(Frame)
 
-class ParticipantFrame(models.Model):
+class ParticipantFrame(IterableDataFieldsMixin, models.Model):
     current_gold = models.IntegerField()
     # dominion_score = models.IntegerField()
     jungle_minions_killed = models.IntegerField()
@@ -291,6 +348,6 @@ class ParticipantFrame(models.Model):
     total_gold = models.IntegerField()
     xp = models.IntegerField()
 
-class Position(models.Model):
+class Position(IterableDataFieldsMixin, models.Model):
     x = models.IntegerField()
     y = models.IntegerField()

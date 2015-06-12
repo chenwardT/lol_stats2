@@ -1,4 +1,3 @@
-import copy
 import inflection
 
 def chunks(l, n):
@@ -33,7 +32,7 @@ def non_dict_or_list_keys(dct):
 
 def underscore_dict(dct):
     """
-    Returns a copy of dct with keys in camel_case.
+    Returns a copy of dct with top-level keys in camel_case.
     """
     under_dict = {}
 
