@@ -75,7 +75,7 @@ class Migration(migrations.Migration):
                 ('region', models.CharField(max_length=4)),
                 ('season', models.CharField(max_length=24)),
             ],
-            bases=(utils.mixins.IterableNonAutoFieldsMixin, models.Model),
+            bases=(utils.mixins.IterableDataFieldsMixin, models.Model),
         ),
         migrations.CreateModel(
             name='Participant',
@@ -89,7 +89,7 @@ class Migration(migrations.Migration):
                 ('team_id', models.IntegerField()),
                 ('match_detail', models.ForeignKey(to='matches.MatchDetail')),
             ],
-            bases=(utils.mixins.IterableNonAutoFieldsMixin, models.Model),
+            bases=(utils.mixins.IterableDataFieldsMixin, models.Model),
         ),
         migrations.CreateModel(
             name='ParticipantFrame',
