@@ -33,15 +33,11 @@ class SummonerManager(models.Manager):
 
         region = region.lower()
 
-        print('create_or_update, checking: [{}] {}'.format(region, name))
-
         if self.is_known(name, region):
             summoner = Summoner.objects.get(region=region, name=name)
-            print('Summoner known, updating: {}'.format(summoner))
             summoner.update_from_match(attrs)
         else:
             summoner = self.create_summoner_from_match(region, attrs)
-            print('Summoner unknown, creating: {}'.format(summoner))
 
         return summoner
 
@@ -97,6 +93,18 @@ class Summoner(models.Model):
     def update_from_match(self, attrs):
         self.profile_icon_id = attrs['profileIcon']
         self.name = attrs['summonerName']
+        self.std_name = standardize_name(attrs['summonerName'])
+
+    def is_complete(self):
+        """
+        Returns True if all fields are filled in, False otherwise,
+        such as when the Summoner is created from match data.
+        """
+        for f in self._meta.fields:
+            if getattr(self, f.name) is None:
+                return False
+
+        return True
 
     class Meta:
         unique_together = ('summoner_id', 'region')
