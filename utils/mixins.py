@@ -1,5 +1,3 @@
-import pprint
-
 from django.db.models.fields import AutoField, related
 
 from utils.functions import underscore_dict, get_val_or_none
@@ -36,18 +34,6 @@ class CreatebleFromAttrsMixin(object):
 
         for k in model_fields:
             dct[k] = underscore_attrs[k]
-
-        # Participant contains fields from Riot's ParticipantStats DTO,
-        # but we store both DTOs' fields in a single model (Participant),
-        # so here we get the ParticipantStats fields and insert them into
-        # the top level of the returned dict.
-        if self.model is 'matches.models.Participant':
-            stats_dct = {}
-
-            for k in underscore_attrs['stats']:
-                stats_dct[k] = get_val_or_none(underscore_attrs, k)
-
-            dct.update(stats_dct)
 
         return dct
 
