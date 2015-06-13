@@ -19,7 +19,7 @@ class IterableDataFieldsMixin(object):
             if type(field) is not AutoField and type(field) is not related.ForeignKey:
                 yield field.name
 
-class CreatebleFromAttrsMixin(object):
+class CreateableFromAttrsMixin(object):
     """
     Mixin for model manager classes.
     """

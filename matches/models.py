@@ -15,7 +15,7 @@ from django.db import models
 from django.contrib.postgres import fields
 
 from utils.mixins import (IterableDataFieldsMixin,
-                          CreatebleFromAttrsMixin,
+                          CreateableFromAttrsMixin,
                           ParticipantFromAttrsMixin)
 from champions.models import Champion
 from summoners.models import Summoner
@@ -25,7 +25,7 @@ from summoners.models import Summoner
 # key isn't present in the dict. Must be able to ignore AutoFields (like id),
 # and call related model's creation methods.
 
-class MatchDetailManager(CreatebleFromAttrsMixin, models.Manager):
+class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
     def create_match(self, attrs):
         # match = self.create(map_id=attrs['mapId'],
         #                     match_creation=attrs['matchCreation'],
@@ -164,7 +164,7 @@ class Participant(IterableDataFieldsMixin, models.Model):
         return '{} on team {}'.format(Champion.objects.get(champion_id=self.champion_id),
                                       self.team_id)
 
-class ParticipantIdentityManager(CreatebleFromAttrsMixin, models.Manager):
+class ParticipantIdentityManager(CreateableFromAttrsMixin, models.Manager):
     def create_participant_identity(self, attrs):
         participant_identity = self.create(**self.init_dict(attrs))
 
@@ -185,7 +185,7 @@ class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
     def __str__(self):
         return 'Participant {} in {}'.format(self.participant_id, self.match_detail)
 
-class TeamManager(CreatebleFromAttrsMixin, models.Manager):
+class TeamManager(CreateableFromAttrsMixin, models.Manager):
     def create_team(self, attrs):
         team = self.create(**self.init_dict(attrs))
 
@@ -214,7 +214,7 @@ class Timeline(IterableDataFieldsMixin, models.Model):
 
     match_detail = models.OneToOneField(MatchDetail)
 
-class MasteryManager(CreatebleFromAttrsMixin, models.Manager):
+class MasteryManager(CreateableFromAttrsMixin, models.Manager):
     def create_mastery(self, attrs):
         mastery = self.create(**self.init_dict(attrs))
 
@@ -260,7 +260,7 @@ class ParticipantTimeline(IterableDataFieldsMixin, models.Model):
 
     participant = models.OneToOneField(Participant)
 
-class RuneManager(CreatebleFromAttrsMixin, models.Manager):
+class RuneManager(CreateableFromAttrsMixin, models.Manager):
     def create_rune(self, attrs):
         rune = self.create(**self.init_dict(attrs))
 
@@ -284,7 +284,7 @@ class Rune(IterableDataFieldsMixin, models.Model):
 #
 #     objects = PlayerManager()
 
-class BannedChampionManager(CreatebleFromAttrsMixin, models.Manager):
+class BannedChampionManager(CreateableFromAttrsMixin, models.Manager):
     def create_banned_champion(self, attrs):
         banned_champion = self.create(**self.init_dict(attrs))
 
