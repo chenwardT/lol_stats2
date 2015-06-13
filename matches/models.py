@@ -172,7 +172,6 @@ class ParticipantIdentityManager(CreatebleFromAttrsMixin, models.Manager):
             Summoner.objects.create_or_update_summoner_from_match(
                 participant_identity.match_detail.region, attrs['player'])
 
-        print('Created PI: {}\nfrom attrs: {}'.format(participant_identity, attrs))
         return participant_identity
 
 class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
