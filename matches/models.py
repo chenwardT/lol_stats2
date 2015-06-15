@@ -83,6 +83,8 @@ class ParticipantManager(ParticipantFromAttrsMixin, models.Manager):
         for r in attrs['runes']:
             participant.rune_set.create_rune(r)
 
+        participant.participanttimeline_set.create_participant_timeline(attrs['timeline'])
+
 class Participant(IterableDataFieldsMixin, models.Model):
     champion_id = models.IntegerField()
     highest_achieved_season_tier = models.CharField(max_length=16, null=True, blank=True)
@@ -228,6 +230,10 @@ class Mastery(IterableDataFieldsMixin, models.Model):
 
 # TODO: Check above all previous fields for BigInt -> Int.
 
+class ParticipantTimelineManager(CreateableFromAttrsMixin, models.Manager):
+    def create_participant_timeline(self, attrs):
+        return self.create(**self.init_dict(attrs))
+
 class ParticipantTimeline(IterableDataFieldsMixin, models.Model):
     # ParticipantTimelineData types to be added later.
     # ancient_golem_assists_per_min_counts
@@ -258,7 +264,9 @@ class ParticipantTimeline(IterableDataFieldsMixin, models.Model):
     # xp_diff_per_min_deltas
     # xp_per_min_deltas
 
-    participant = models.OneToOneField(Participant)
+    participant = models.ForeignKey(Participant)
+
+    objects = ParticipantTimelineManager()
 
 class RuneManager(CreateableFromAttrsMixin, models.Manager):
     def create_rune(self, attrs):
