@@ -14,6 +14,21 @@ from .models import (MatchDetail,
                      ParticipantFrame,
                      Position)
 
+class ParticipantInline(admin.TabularInline):
+    model = Participant
+
+class ParticipantIdentityInline(admin.TabularInline):
+    model = ParticipantIdentity
+
+class TeamInline(admin.TabularInline):
+    model = Team
+
 @admin.register(MatchDetail)
 class MatchDetailAdmin(admin.ModelAdmin):
-    list_display = ('region', 'match_id', 'queue_type', 'match_date', 'match_version')
+    list_display = ('match_id', 'region', 'queue_type', 'match_date', 'match_version')
+
+    inlines = [
+        ParticipantInline,
+        ParticipantIdentityInline,
+        TeamInline,
+    ]
