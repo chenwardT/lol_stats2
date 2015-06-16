@@ -97,6 +97,7 @@ class Summoner(models.Model):
         self.profile_icon_id = attrs['profileIcon']
         self.name = attrs['summonerName']
         self.std_name = standardize_name(attrs['summonerName'])
+        self.save()
 
     def is_complete(self):
         """
