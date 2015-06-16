@@ -15,6 +15,7 @@ from champions.models import Champion
 from spells.models import SummonerSpell
 from games.models import Game
 from leagues.models import League
+from matches.models import MatchDetail
 
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lol_stats2.settings.base')
@@ -159,3 +160,17 @@ def store_get_league(result, summoner_id, region):
     """
 
     League.objects.create_or_update_league(result[str(summoner_id)][0], region)
+
+@app.task
+def store_get_match(result):
+    """
+    Callback that stores the result of RiotWatcher get_match calls.
+    Creates instances for MatchDetail and all related models.
+
+    Unlike other storage methods, this method reads (match) ID and region from
+    the result dict.
+
+    Note: Timeline data not implemented.
+    """
+
+    MatchDetail.objects.create_match(result)

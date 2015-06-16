@@ -9,7 +9,8 @@ from lol_stats2.celery import (riot_api,
                                store_static_get_summoner_spell_list,
                                store_get_recent_games,
                                store_get_challenger,
-                               store_get_league)
+                               store_get_league,
+                               store_get_match)
 
 # TODO: Lots of repetition of strings here.
 # Consider putting all "store" methods in a class.
@@ -81,3 +82,18 @@ class RiotAPI:
 
         job = riot_api.apply_async((func, kwargs),
                                    link=store_get_league.s(summoner_id, region))
+
+    @staticmethod
+    def get_match(match_id, region=None, include_timeline=False):
+        """
+        Gets a single match, timeline data optionally included.
+
+        Note: Timeline data models not implemented.
+        """
+        func = 'get_match'
+        kwargs = {'match_id': match_id,
+                  'region': region,
+                  'include_timeline': include_timeline}
+
+        job = riot_api.apply_async((func, kwargs),
+                                   link=store_get_match.s())
