@@ -30,14 +30,17 @@ class SummonerManager(models.Manager):
 
     def create_or_update_summoner_from_match(self, region, attrs):
         name = attrs['summonerName']
-
         region = region.lower()
+
+        logger.info('create_or_update_summoner_from_match: {} {}'.format(region, name))
 
         if self.is_known(name, region):
             summoner = Summoner.objects.get(region=region, name=name)
+            logger.info('Summoner found: {}'.format(summoner))
             summoner.update_from_match(attrs)
         else:
             summoner = self.create_summoner_from_match(region, attrs)
+            logger.info('Summoner not found, created: {}'.format(summoner))
 
         return summoner
 
