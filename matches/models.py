@@ -20,25 +20,11 @@ from utils.mixins import (IterableDataFieldsMixin,
 from champions.models import Champion
 from summoners.models import Summoner
 
-# TODO: Create a means of creating/updating a model instance from dict
-# that automatically sets instance fields to None if their associated
-# key isn't present in the dict. Must be able to ignore AutoFields (like id),
-# and call related model's creation methods.
+# TODO: Finish create_ methods for models related to timeline data.
+# See `include_timeline` arg of RiotWatcher.get_match().
 
 class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
     def create_match(self, attrs):
-        # match = self.create(map_id=attrs['mapId'],
-        #                     match_creation=attrs['matchCreation'],
-        #                     match_duration=attrs['matchDuration'],
-        #                     match_id=attrs['matchId'],
-        #                     match_mode=attrs['matchMode'],
-        #                     match_type=attrs['matchType'],
-        #                     match_version=attrs['matchVersion'],
-        #                     platform_id=attrs['platformId'],
-        #                     queue_type=attrs['queueType'],
-        #                     region=attrs['region'],
-        #                     season=attrs['season'])
-
         match = self.create(**self.init_dict(attrs))
 
         for p in attrs['participants']:
@@ -185,11 +171,16 @@ class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
     objects = ParticipantIdentityManager()
 
     def __str__(self):
-        return 'Participant {} in {}'.format(self.participant_id, self.match_detail)
+        return 'Participant ID {} in {}'.format(self.participant_id, self.match_detail)
 
 class TeamManager(CreateableFromAttrsMixin, models.Manager):
     def create_team(self, attrs):
         team = self.create(**self.init_dict(attrs))
+
+        for b in attrs['bans']:
+            team.bannedchampion_set.create_banned_champion(b)
+
+        return team
 
 class Team(IterableDataFieldsMixin, models.Model):
     baron_kills = models.IntegerField(null=True, blank=True)
@@ -210,6 +201,10 @@ class Team(IterableDataFieldsMixin, models.Model):
 
     objects = TeamManager()
 
+    def __str__(self):
+        return 'Team {} of match {}'.format(self.team_id, self.match_detail)
+
+# timeline data
 class Timeline(IterableDataFieldsMixin, models.Model):
     frame_interval = models.BigIntegerField()
     # frames list
@@ -280,21 +275,9 @@ class Rune(IterableDataFieldsMixin, models.Model):
 
     objects = RuneManager()
 
-# class PlayerManager(CreatebleFromAttrsMixin, models.Manager):
-#     def create_player(self, attrs):
-#         return self.create(**self.init_dict(attrs))
-#
-# class Player(IterableDataFieldsMixin, models.Model):
-#     match_history_uri = models.CharField(max_length=64)
-#     profile_icon = models.IntegerField()
-#     summoner_id = models.IntegerField()
-#     summoner_name = models.CharField(max_length=24)
-#
-#     objects = PlayerManager()
-
 class BannedChampionManager(CreateableFromAttrsMixin, models.Manager):
     def create_banned_champion(self, attrs):
-        banned_champion = self.create(**self.init_dict(attrs))
+        return self.create(**self.init_dict(attrs))
 
 class BannedChampion(IterableDataFieldsMixin, models.Model):
     champion_id = models.IntegerField()
@@ -304,6 +287,10 @@ class BannedChampion(IterableDataFieldsMixin, models.Model):
 
     objects = BannedChampionManager()
 
+    def __str__(self):
+        return "Team {}'s Ban {}: {}".format(self.team, self.pick_turn, self.champion_id)
+
+# timeline data
 class Frame(IterableDataFieldsMixin, models.Model):
     #events
     #participant_frames
@@ -318,6 +305,7 @@ class Frame(IterableDataFieldsMixin, models.Model):
 #     twenty_to_thirty = models.FloatField(null=True, blank=True)
 #     zero_to_ten = models.FloatField(null=True, blank=True)
 
+# timeline data
 class Event(IterableDataFieldsMixin, models.Model):
     # ascended_type
     assisting_participant_ids = fields.ArrayField(models.IntegerField())
@@ -343,6 +331,7 @@ class Event(IterableDataFieldsMixin, models.Model):
 
     frame = models.ForeignKey(Frame)
 
+# timeline data
 class ParticipantFrame(IterableDataFieldsMixin, models.Model):
     current_gold = models.IntegerField()
     # dominion_score = models.IntegerField()
@@ -355,6 +344,7 @@ class ParticipantFrame(IterableDataFieldsMixin, models.Model):
     total_gold = models.IntegerField()
     xp = models.IntegerField()
 
+# timeline data
 class Position(IterableDataFieldsMixin, models.Model):
     x = models.IntegerField()
     y = models.IntegerField()
