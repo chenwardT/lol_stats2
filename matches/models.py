@@ -9,6 +9,7 @@ One-to-one fields are on child models, unless that model is referred
 to by more than one kind of other model (e.g. Position).
 """
 
+import logging
 from datetime import datetime
 
 from django.db import models
@@ -19,6 +20,8 @@ from utils.mixins import (IterableDataFieldsMixin,
                           ParticipantFromAttrsMixin)
 from champions.models import Champion
 from summoners.models import Summoner
+
+logger = logging.getLogger(__name__)
 
 # TODO: Finish create_ methods for models related to timeline data.
 # See `include_timeline` arg of RiotWatcher.get_match().
@@ -160,6 +163,8 @@ class ParticipantIdentityManager(CreateableFromAttrsMixin, models.Manager):
             Summoner.objects.create_or_update_summoner_from_match(
                 participant_identity.match_detail.region, attrs['player'])
 
+        participant_identity.save()
+
         return participant_identity
 
 class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
@@ -202,7 +207,13 @@ class Team(IterableDataFieldsMixin, models.Model):
     objects = TeamManager()
 
     def __str__(self):
-        return 'Team {} of match {}'.format(self.team_id, self.match_detail)
+        return '{} team of match {}'.format(self.color(), self.match_detail)
+
+    def color(self):
+        if self.team_id is 100:
+            return 'Blue'
+        else:
+            return 'Purple'
 
 # timeline data
 class Timeline(IterableDataFieldsMixin, models.Model):
@@ -275,6 +286,9 @@ class Rune(IterableDataFieldsMixin, models.Model):
 
     objects = RuneManager()
 
+    def __str__(self):
+        return "Rune of {}: {} ({})".format(self.participant, self.rune_id, self.rank)
+
 class BannedChampionManager(CreateableFromAttrsMixin, models.Manager):
     def create_banned_champion(self, attrs):
         return self.create(**self.init_dict(attrs))
@@ -288,7 +302,7 @@ class BannedChampion(IterableDataFieldsMixin, models.Model):
     objects = BannedChampionManager()
 
     def __str__(self):
-        return "Team {}'s Ban {}: {}".format(self.team, self.pick_turn, self.champion_id)
+        return "{} team's ban {}: {}".format(self.team.color(), self.pick_turn, self.champion_id)
 
 # timeline data
 class Frame(IterableDataFieldsMixin, models.Model):
