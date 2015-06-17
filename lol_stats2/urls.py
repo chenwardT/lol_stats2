@@ -4,10 +4,12 @@ from rest_framework import routers
 
 from summoners.views import SummonerViewSet, index, search, show, refresh
 from champions.views import ChampionViewSet
+from matches.views import MatchDetailViewSet
 
 router = routers.DefaultRouter()
 router.register(r'summoners', SummonerViewSet)
 router.register(r'champions', ChampionViewSet)
+router.register(r'matchdetails', MatchDetailViewSet)
 
 admin.autodiscover()
 
