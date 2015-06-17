@@ -210,7 +210,7 @@ class Team(IterableDataFieldsMixin, models.Model):
         return '{} team of match {}'.format(self.color(), self.match_detail)
 
     def color(self):
-        if self.team_id is 100:
+        if self.team_id == 100:
             return 'Blue'
         else:
             return 'Purple'
