@@ -2,7 +2,8 @@
 A wrapper for for the Celery task that uses the RiotWatcher instance.
 """
 
-from lol_stats2.celery import (riot_api,
+from lol_stats2.celery import (app,
+                               riot_api,
                                store_get_summoner,
                                store_get_summoners,
                                store_static_get_champion_list,
@@ -11,6 +12,7 @@ from lol_stats2.celery import (riot_api,
                                store_get_challenger,
                                store_get_league,
                                store_get_match)
+from matches.models import MatchDetail
 
 # TODO: Lots of repetition of strings here.
 # Consider putting all "store" methods in a class.
@@ -95,5 +97,44 @@ class RiotAPI:
                   'region': region,
                   'include_timeline': include_timeline}
 
+        possibly_extant_match = MatchDetail.objects.filter(match_id=match_id,
+                                                           region=region)
+
+        if not possibly_extant_match.exists():
+            job = riot_api.apply_async((func, kwargs),
+                                       link=store_get_match.s())
+
+    # TODO: Does not check ranked_queues, but it should ensure they're 5v5 types.
+    @staticmethod
+    def get_match_history(summoner_id, region=None, champion_ids=None,
+                          ranked_queues=None, begin_index=None, end_index=None):
+        """
+        Gets a range of matches (max 15), based on indices.
+
+        Used to get a list of match IDs to feed into get_match.
+        """
+        func = 'get_match_history'
+        kwargs = {'summoner_id': summoner_id,
+                  'region': region,
+                  'champion_ids': champion_ids,
+                  'ranked_queues': ranked_queues,
+                  'begin_index': begin_index,
+                  'end_index': end_index}
+
         job = riot_api.apply_async((func, kwargs),
-                                   link=store_get_match.s())
+                                   link=get_matches_from_ids.s(region))
+
+@app.task
+def get_matches_from_ids(result, region):
+    """
+    Callback that parses the result dict for match IDs and feeds them back to
+    the get_match for getting each match's full dataset (this method's received
+    `result` only contains the data for the summoner ID that was passed to it).
+
+    Returns a count of the matches that were saved (cached match data is not
+    fetched).
+
+    Note: Assumes matches are of type 5v5.
+    """
+    for match in result['matches']:
+        RiotAPI.get_match(match['matchId'], region=region, include_timeline=False)
