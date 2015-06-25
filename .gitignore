@@ -1,3 +1,6 @@
 seed/
 *.vsdx
 *.png
+*.pyc
+*.sql*
+.idea/
