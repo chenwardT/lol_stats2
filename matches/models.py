@@ -62,6 +62,9 @@ class MatchDetail(IterableDataFieldsMixin, models.Model):
     def match_date(self):
         return datetime.fromtimestamp(self.match_creation/1000)
 
+    class Meta:
+        unique_together = ('match_id', 'region')
+
 class ParticipantManager(ParticipantFromAttrsMixin, models.Manager):
     def create_participant(self, attrs):
         participant = self.create(**self.init_dict(attrs))
