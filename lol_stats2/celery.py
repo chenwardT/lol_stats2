@@ -33,6 +33,9 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 
+# TODO: Move tasks into separate modules.
+
+# TODO: Create separate task for static API calls (not counted against rate limit).
 @app.task
 def riot_api(fn, args):
     """
@@ -44,7 +47,7 @@ def riot_api(fn, args):
 # This rate limit results in the greatest common multiple of the 2 stated rate limits:
 # 10 req / 10 sec
 # 500 req / 10 min
-app.control.rate_limit('lol_stats2.celery.riot_api', '50/m')
+app.control.rate_limit('lol_stats2.celery.riot_api', '.8/s')
 
 # TODO: Consider renaming these tasks.
 # TODO: Can these tasks be put in a class and passed around instead of individually?
@@ -59,10 +62,8 @@ def store_get_summoner(result, region):
     query = Summoner.objects.filter(region=region, summoner_id=result['id'])
 
     if not query.exists():
-        # Create
         summoner = Summoner.objects.create_summoner(region, result)
     else:
-        # Update
         summoner = query[0]
         summoner.update(region, result)
 
@@ -174,3 +175,21 @@ def store_get_match(result):
     """
 
     MatchDetail.objects.create_match(result)
+
+# @app.task
+# def store_get_match_history(result, region):
+#     """
+#     Callback that parses the result dict for match IDs and feeds them back to
+#     the wrapper for getting each match's full dataset (this method's received
+#     `result` only contains the data for the summoner ID that was passed to it).
+#
+#     Note: Assumes matches are of type 5v5.
+#     """
+#
+#     match_ids = []
+#
+#     for match in result['matches']:
+#         match_ids.append(match['matchId'])
+#
+#     for match_id in match_ids:
+#         RiotAPI.get_match(match_id, region=region, include_timeline=False)
