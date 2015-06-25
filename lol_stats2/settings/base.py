@@ -10,7 +10,9 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+
 from django.core.exceptions import ImproperlyConfigured
+from kombu import Queue, Exchange
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
@@ -46,7 +48,7 @@ INSTALLED_APPS = (
     'matches',
 )
 
-RUNSERVERPLUS_SERVER_ADDRESS_PORT = '0.0.0.0:8000'
+RUNSERVERPLUS_SERVER_ADDRESS_PORT = '0.0.0.0:8001'
 
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
@@ -54,6 +56,31 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ]
+}
+
+CELERY_QUEUES = (
+    Queue('default', Exchange('default', type='topic'), routing_key='default'),
+    Queue('store', routing_key='store.#'),
+)
+
+CELERY_DEFAULT_QUEUE = 'default'
+CELERY_DEFAULT_EXCHANGE = 'default'
+CELERY_DEFAULT_EXCHANGE_TYPE = 'topic'
+CELERY_DEFAULT_ROUTING_KEY = 'task.default'
+
+CELERY_ROUTES = {
+    'lol_stats2.celery.store_get_match': {
+        'queue': 'store',
+        'exchange': 'default',
+        'exchange_type': 'topic',
+        'routing_key': 'store.get_match',
+    },
+    'riot_api.wrapper.get_matches_from_ids': {
+        'queue': 'store',
+        'exchange': 'default',
+        'exchange_type': 'topic',
+        'routing_key': 'store.get_matches_from_ids',
+    }
 }
 
 MIDDLEWARE_CLASSES = (
