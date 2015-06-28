@@ -24,7 +24,8 @@ from django.conf import settings
 
 app = Celery('lol_stats2',
              broker='amqp://',
-             backend='amqp://')
+             # backend='amqp://'
+             )
 
 # Using a string here means the worker will not have to pickle the object
 # when using Windows.
@@ -47,7 +48,8 @@ def riot_api(fn, args):
 # This rate limit results in the greatest common multiple of the 2 stated rate limits:
 # 10 req / 10 sec
 # 500 req / 10 min
-app.control.rate_limit('lol_stats2.celery.riot_api', '.8/s')
+# ...and tuned down a bit due to inconsistencies between our timing and Riot's.
+app.control.rate_limit('lol_stats2.celery.riot_api', '.6/s')
 
 # TODO: Consider renaming these tasks.
 # TODO: Can these tasks be put in a class and passed around instead of individually?
