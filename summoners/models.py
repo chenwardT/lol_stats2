@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 
-from django.db import models
+from django.db import models, transaction
 
 # FIXME: Not writing to file, but is displayed by Celery worker.
 logger = logging.getLogger(__name__)
@@ -29,23 +29,24 @@ class SummonerManager(models.Manager):
                            region=region)
 
     def create_or_update_summoner_from_match(self, region, attrs):
-        name = attrs['summonerName']
+        summoner_id = attrs['summonerId']
         region = region.lower()
 
         logger.info('create_or_update_summoner_from_match: {} {}'.format(region, name))
 
-        if self.is_known(name, region):
-            summoner = Summoner.objects.get(region=region, name=name)
-            logger.info('Summoner found: {}'.format(summoner))
-            summoner.update_from_match(attrs)
-        else:
-            summoner = self.create_summoner_from_match(region, attrs)
-            logger.info('Summoner not found, created: {}'.format(summoner))
+        with transaction.atomic():
+            if self.is_known(summoner_id, region):
+                summoner = Summoner.objects.get(summoner_id=summoner_id, region=region)
+                logger.info('Summoner found: {}'.format(summoner))
+                summoner.update_from_match(attrs)
+            else:
+                summoner = self.create_summoner_from_match(region, attrs)
+                logger.info('Summoner not found, created: {}'.format(summoner))
 
         return summoner
 
-    def is_known(self, name, region):
-        return self.filter(region=region, std_name=standardize_name(name)).exists()
+    def is_known(self, summoner_id, region):
+        return self.filter(summoner_id=summoner_id, region=region).exists()
 
 class Summoner(models.Model):
     """Maps to Riot API summoner DTO.

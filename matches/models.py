@@ -12,7 +12,7 @@ to by more than one kind of other model (e.g. Position).
 import logging
 from datetime import datetime
 
-from django.db import models
+from django.db import models, transaction
 from django.contrib.postgres import fields
 
 from utils.mixins import (IterableDataFieldsMixin,
@@ -28,16 +28,21 @@ logger = logging.getLogger(__name__)
 
 class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
     def create_match(self, attrs):
-        match = self.create(**self.init_dict(attrs))
+        match = None
 
-        for p in attrs['participants']:
-            match.participant_set.create_participant(p)
+        with transaction.atomic():
+            if not self.filter(match_id=attrs['matchId'],
+                               region=attrs['region']).exists():
+                match = self.create(**self.init_dict(attrs))
 
-        for pi in attrs['participantIdentities']:
-            match.participantidentity_set.create_participant_identity(pi)
+                for p in attrs['participants']:
+                    match.participant_set.create_participant(p)
 
-        for t in attrs['teams']:
-            match.team_set.create_team(t)
+                for pi in attrs['participantIdentities']:
+                    match.participantidentity_set.create_participant_identity(pi)
+
+                for t in attrs['teams']:
+                    match.team_set.create_team(t)
 
         return match
 
@@ -69,11 +74,13 @@ class ParticipantManager(ParticipantFromAttrsMixin, models.Manager):
     def create_participant(self, attrs):
         participant = self.create(**self.init_dict(attrs))
 
-        for m in attrs['masteries']:
-            participant.mastery_set.create_mastery(m)
+        if 'masteries' in attrs:
+            for m in attrs['masteries']:
+                participant.mastery_set.create_mastery(m)
 
-        for r in attrs['runes']:
-            participant.rune_set.create_rune(r)
+        if 'runes' in attrs:
+            for r in attrs['runes']:
+                participant.rune_set.create_rune(r)
 
         participant.participanttimeline_set.create_participant_timeline(attrs['timeline'])
 
