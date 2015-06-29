@@ -24,16 +24,16 @@ class RiotAPI:
         func = 'get_summoner'
         kwargs = {'name': name, 'region': region}
 
-        job = riot_api.apply_async((func, kwargs),
-                                   link=store_get_summoner.s(region=region))
+        riot_api.apply_async((func, kwargs),
+                             link=store_get_summoner.s(region=region))
 
     @staticmethod
     def get_summoners(names=None, ids=None, region=None):
         func = 'get_summoners'
         kwargs = {'names': names, 'ids': ids, 'region': region}
 
-        job = riot_api.apply_async((func, kwargs),
-                                   link=store_get_summoners.s(region=region))
+        riot_api.apply_async((func, kwargs),
+                             link=store_get_summoners.s(region=region))
 
     @staticmethod
     def static_get_champion_list(region=None, locale=None, version=None,
@@ -42,8 +42,8 @@ class RiotAPI:
         kwargs = {'region': region, 'locale': locale, 'version': version,
                   'data_by_id': data_by_id, 'champ_data': champ_data}
 
-        job = riot_api.apply_async((func, kwargs),
-                                   link=store_static_get_champion_list.s())
+        riot_api.apply_async((func, kwargs),
+                             link=store_static_get_champion_list.s())
 
     @staticmethod
     def static_get_summoner_spell_list(region=None, locale=None, version=None,
@@ -52,25 +52,25 @@ class RiotAPI:
         kwargs = {'region': region, 'locale': locale, 'version': version,
                   'data_by_id': data_by_id, 'spell_data': spell_data}
 
-        job = riot_api.apply_async((func, kwargs),
-                                   link=store_static_get_summoner_spell_list.s())
+        riot_api.apply_async((func, kwargs),
+                             link=store_static_get_summoner_spell_list.s())
 
     @staticmethod
     def get_recent_games(summoner_id, region=None):
         func = 'get_recent_games'
         kwargs = {'summoner_id': summoner_id, 'region': region}
 
-        job = riot_api.apply_async((func, kwargs),
-                                   link=store_get_recent_games.s(summoner_id=summoner_id,
-                                                                 region=region))
+        riot_api.apply_async((func, kwargs),
+                             link=store_get_recent_games.s(summoner_id=summoner_id,
+                                                           region=region))
 
     @staticmethod
     def get_challenger(region=None):
         func = 'get_challenger'
         kwargs = {'region': region}
 
-        job = riot_api.apply_async((func, kwargs),
-                                   link=store_get_challenger.s(region=region))
+        riot_api.apply_async((func, kwargs),
+                             link=store_get_challenger.s(region=region))
 
     @staticmethod
     def get_league(summoner_id, region=None):
@@ -82,8 +82,8 @@ class RiotAPI:
         func = 'get_league'
         kwargs = {'summoner_ids': [summoner_id], 'region': region}
 
-        job = riot_api.apply_async((func, kwargs),
-                                   link=store_get_league.s(summoner_id, region))
+        riot_api.apply_async((func, kwargs),
+                             link=store_get_league.s(summoner_id, region))
 
     @staticmethod
     def get_match(match_id, region=None, include_timeline=False):
@@ -101,8 +101,8 @@ class RiotAPI:
                                                            region=region)
 
         if not possibly_extant_match.exists():
-            job = riot_api.apply_async((func, kwargs),
-                                       link=store_get_match.s())
+            riot_api.apply_async((func, kwargs),
+                                 link=store_get_match.s())
 
     # TODO: Does not check ranked_queues, but it should ensure they're 5v5 types.
     @staticmethod
@@ -121,8 +121,9 @@ class RiotAPI:
                   'begin_index': begin_index,
                   'end_index': end_index}
 
-        job = riot_api.apply_async((func, kwargs),
-                                   link=get_matches_from_ids.s(region))
+        riot_api.apply_async((func, kwargs),
+                             link=get_matches_from_ids.s(region))
+
 
 @app.task
 def get_matches_from_ids(result, region):
@@ -136,5 +137,6 @@ def get_matches_from_ids(result, region):
 
     Note: Assumes matches are of type 5v5.
     """
+    # TODO: Fix issue of no 'matches' key in result dict.
     for match in result['matches']:
         RiotAPI.get_match(match['matchId'], region=region, include_timeline=False)
