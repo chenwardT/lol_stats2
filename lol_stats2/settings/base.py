@@ -58,8 +58,10 @@ REST_FRAMEWORK = {
     ]
 }
 
+# TODO: Refine MQ topology.
 CELERY_QUEUES = (
-    Queue('default', Exchange('default', type='topic'), routing_key='default'),
+    Queue('default', routing_key='default'),
+    Queue('match_ids', routing_key='match_ids'),
     Queue('store', routing_key='store.#'),
 )
 
@@ -76,10 +78,10 @@ CELERY_ROUTES = {
         'routing_key': 'store.get_match',
     },
     'riot_api.wrapper.get_matches_from_ids': {
-        'queue': 'store',
+        'queue': 'match_ids',
         'exchange': 'default',
         'exchange_type': 'topic',
-        'routing_key': 'store.get_matches_from_ids',
+        'routing_key': 'match_ids',
     }
 }
 
