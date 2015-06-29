@@ -32,7 +32,8 @@ class SummonerManager(models.Manager):
         summoner_id = attrs['summonerId']
         region = region.lower()
 
-        logger.info('create_or_update_summoner_from_match: {} {}'.format(region, name))
+        logger.info('create_or_update_summoner_from_match: {} {}'.
+                    format(region, summoner_id))
 
         with transaction.atomic():
             if self.is_known(summoner_id, region):
