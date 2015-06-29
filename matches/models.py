@@ -33,6 +33,9 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
         with transaction.atomic():
             if not self.filter(match_id=attrs['matchId'],
                                region=attrs['region']).exists():
+
+                logging.info('Creating match: {} {}'.format(attrs['region'],
+                                                            attrs['matchId']))
                 match = self.create(**self.init_dict(attrs))
 
                 for p in attrs['participants']:
