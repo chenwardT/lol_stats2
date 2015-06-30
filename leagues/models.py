@@ -31,7 +31,6 @@ class League(models.Model):
     """
     Maps to Riot API League DTO.
     """
-
     region = models.CharField(max_length=4)     # ex. na
     queue = models.CharField(max_length=32)     # ex. RANKED_SOLO_5x5
     name = models.CharField(max_length=32)      # ex. Orianna's Warlocks
@@ -72,7 +71,6 @@ class LeagueEntry(models.Model):
     A summoner ID can be filtered by with this model's manager to get their
     solo queue entry.
     """
-
     division = models.CharField(max_length=3)               # ex. IV
     is_fresh_blood = models.BooleanField()
     is_hot_streak = models.BooleanField()

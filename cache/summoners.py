@@ -13,18 +13,21 @@ logger = logging.getLogger(__name__)
 
 # TODO: Consider a usage pattern where we can call get_handle in __init__() or
 # something instead of in each method that needs a handle.
+
+# TODO: Broken; must revisit use cases.
+# e.g. What can init expect?
 class SingleSummoner:
     """
     Contains methods required to maintain the front-end's summoner page.
     """
-    def __init__(self, region, std_name):
+    def __init__(self, region, std_name=None, summoner_id=None):
         self.std_name = std_name
+        self.summoner_id = summoner_id
         self.region = region
         self.summoner = None
 
     def is_known(self):
-        return Summoner.objects.is_known(name=self.std_name,
-                                         region=self.region)
+        return Summoner.objects.is_known(self.summoner_id, self.region)
 
     def get_instance(self):
         if self.summoner is None:

@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 def standardize_name(name):
         return name.replace(' ', '').lower()
 
+# TODO: Ensure all regions are stored capitalized.
+
 class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
         logger.info("Creating summoner with region '{}' from: {}".format(region, attrs))

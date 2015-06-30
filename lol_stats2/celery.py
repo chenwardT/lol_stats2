@@ -35,6 +35,7 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 
 # TODO: Move tasks into separate modules.
+# TODO: Use self.retry(), in cases where Riot servers could return 5xx.
 
 # TODO: Create separate task for static API calls (not counted against rate limit).
 @app.task
@@ -121,7 +122,6 @@ def store_static_get_summoner_spell_list(result):
     Callback that stores the result of RiotWatcher static_get_summoner_list calls.
     Since there are only a handful of spells, we replace all spells w/the new data.
     """
-
     SummonerSpell.objects.all().delete()
 
     for attrs in result['data'].values():
@@ -129,12 +129,12 @@ def store_static_get_summoner_spell_list(result):
 
 # TODO: Use game IDs to get match data.
 # This way, you get full participant data, instead of just the 1 player's items, etc.
+# Note: This is unused as MatchDetail is all we're using for now (ranked games).
 @app.task
 def store_get_recent_games(result, summoner_id, region):
     """
     Callback that stores the result of RiotWatcher get_recent_games calls.
     """
-
     for attrs in result['games']:
         # We don't want to duplicate existing games, so compare each
         # by game_id and region.
@@ -149,7 +149,6 @@ def store_get_challenger(result, region):
 
     Replaces the entirety of the challenger league.
     """
-
     League.objects.create_or_update_league(result, region)
 
 @app.task
@@ -161,7 +160,6 @@ def store_get_league(result, summoner_id, region):
     Stores a previously unknown league or replaces the entirety of the
     summoner's league's entries if it was known.
     """
-
     League.objects.create_or_update_league(result[str(summoner_id)][0], region)
 
 @app.task
@@ -175,7 +173,6 @@ def store_get_match(result):
 
     Note: Timeline data not implemented.
     """
-
     MatchDetail.objects.create_match(result)
 
 # @app.task
