@@ -97,22 +97,22 @@ class RiotAPI:
                   'region': region,
                   'include_timeline': include_timeline}
 
-        possibly_extant_match = MatchDetail.objects.filter(match_id=match_id,
-                                                           region=region)
-
-        if not possibly_extant_match.exists():
+        if not MatchDetail.objects.filter(match_id=match_id,
+                                          region=region.upper()).exists():
             riot_api.apply_async((func, kwargs),
                                  link=store_get_match.s())
 
-    # TODO: Does not check ranked_queues, but it should ensure they're 5v5 types.
     @staticmethod
     def get_match_history(summoner_id, region=None, champion_ids=None,
-                          ranked_queues=None, begin_index=None, end_index=None):
+                          ranked_queues='RANKED_SOLO_5x5', begin_index=None,
+                          end_index=None):
         """
         Gets a range of matches (max 15), based on indices.
 
-        Used to get a list of match IDs to feed into get_match.
+        Used to get a list of match IDs to feed into get_match,
+        via get_matches_from_ids.
         """
+        _ALLOWED_QUEUES = ('RANKED_SOLO_5x5', 'RANKED_TEAM_5x5')
         func = 'get_match_history'
         kwargs = {'summoner_id': summoner_id,
                   'region': region,
@@ -121,9 +121,13 @@ class RiotAPI:
                   'begin_index': begin_index,
                   'end_index': end_index}
 
-        riot_api.apply_async((func, kwargs),
-                             link=get_matches_from_ids.s(region))
-
+        if ranked_queues not in _ALLOWED_QUEUES:
+            raise ValueError('Unsupported value for "ranked_queues": {};'
+                             'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
+                             .format(ranked_queues))
+        else:
+            riot_api.apply_async((func, kwargs),
+                                 link=get_matches_from_ids.s(region))
 
 @app.task
 def get_matches_from_ids(result, region):
@@ -137,6 +141,8 @@ def get_matches_from_ids(result, region):
 
     Note: Assumes matches are of type 5v5.
     """
-    # TODO: Fix issue of no 'matches' key in result dict.
-    for match in result['matches']:
-        RiotAPI.get_match(match['matchId'], region=region, include_timeline=False)
+    if 'matches' in result:
+        for match in result['matches']:
+            if not MatchDetail.objects.filter(match_id=match['matchId'],
+                                              region=region.upper()).exists():
+                RiotAPI.get_match(match['matchId'], region=region, include_timeline=False)
