@@ -1,5 +1,5 @@
 """
-Management class for summoner data retrieval.
+Ensures Summoner pages contain up-to-date data.
 """
 
 import logging
@@ -19,23 +19,66 @@ logger = logging.getLogger(__name__)
 class SingleSummoner:
     """
     Contains methods required to maintain the front-end's summoner page.
+
+    Expected to receive region and either A) summoner_id or B) std_name.
+    A name is expected to be received when initialized by user actions
+    (ex. a user searching for a summoner would be by region + name).
     """
-    def __init__(self, region, std_name=None, summoner_id=None):
+    _ALLOWED_REGIONS = ('BR', 'EUNE', 'EUW', 'KR', 'LAN', 'LAS', 'NA', 'OCE',
+                        'TR', 'RU')
+
+    def __init__(self, std_name=None, summoner_id=None, region=None):
+        # These attributes are only used to get the summoner instance
+        # and should not be referenced after __init__() completes.
         self.std_name = std_name
         self.summoner_id = summoner_id
         self.region = region
         self.summoner = None
 
+        if self.region not in self._ALLOWED_REGIONS:
+            raise ValueError('Invalid region: {}; must be one of {}'
+                             .format(self.region, self._ALLOWED_REGIONS))
+
+        if not (self.summoner_id or self.std_name):
+            raise ValueError('Expecting summoner_id or std_name to be present.')
+
+        # If the summoner isn't already known, the first time we get it
+        # will be via name, meaning we have a std_name to work with.
+        if not self.is_known():
+            self.get_summoner_by_name()
+
+        self.get_instance()
+
     def is_known(self):
-        return Summoner.objects.is_known(self.summoner_id, self.region)
+        if self.summoner_id:
+            return Summoner.objects.filter(summoner_id=self.summoner,
+                                           region=self.region).exists()
+        else:
+            return Summoner.objects.filter(std_name=self.std_name,
+                                           region=self.region).exists()
+
+    def get_summoner_by_name(self):
+        RiotAPI.get_summoner(region=self.region, name=self.std_name)
 
     def get_instance(self):
+        """
+        Get the appropriate model instance and assign it to self.summoner.
+
+        Returns summoner instance if found, otherwise None.
+        """
         if self.summoner is None:
-            try:
-                self.summoner = Summoner.objects.get(region=self.region,
-                                                     std_name=self.std_name)
-            except Exception as e:
-                logger.exception(e)
+            if self.summoner_id:
+                summoner_query = Summoner.objects.filter(region=self.region,
+                                                         summoner_id=self.summoner_id)
+
+                if summoner_query.exists():
+                    self.summoner = summoner_query.get()
+            else:
+                summoner_query = Summoner.objects.filter(region=self.region,
+                                                         std_name=self.std_name)
+
+                if summoner_query.exists():
+                    self.summoner = summoner_query.get()
 
         return self.summoner
 
@@ -72,7 +115,7 @@ class SingleSummoner:
         logger.info('Summoner - Full Query on [{}] {}'.format(self.region, self.std_name))
 
         # TODO: This should probably just be a list of calls to methods on this class.
-        self.get_summoner()
+        self.get_summoner_by_name()
 
     def partial_query(self):
         """
@@ -84,17 +127,17 @@ class SingleSummoner:
         -ranked stats
         """
 
-    def get_summoner(self):
-        RiotAPI.get_summoner(region=self.region, name=self.std_name)
+    def refresh_match_history(self):
+        RiotAPI.get_match_history(summoner_id=self.summoner_id, region=self.region)
 
-    def get_recent_games(self):
-        logger.info('Summoner - Recent Games Query on [{}] {}'.format(self.region, self.std_name))
-
-        # If this is a new summoner.
-        if not self.is_known():
-            self.get_summoner()
-
-        self.get_instance()
-
-        RiotAPI.get_recent_games(summoner_id=self.summoner.summoner_id,
-                                 region=self.region)
+    # def get_recent_games(self):
+    #     logger.info('Summoner - Recent Games Query on [{}] {}'.format(self.region, self.std_name))
+    #
+    #     # If this is a new summoner.
+    #     if not self.is_known():
+    #         self.get_summoner_by_name()
+    #
+    #     self.get_instance()
+    #
+    #     RiotAPI.get_recent_games(summoner_id=self.summoner.summoner_id,
+    #                              region=self.region)
