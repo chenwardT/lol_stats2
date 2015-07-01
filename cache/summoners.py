@@ -11,11 +11,6 @@ from riot_api.wrapper import RiotAPI
 
 logger = logging.getLogger(__name__)
 
-# TODO: Consider a usage pattern where we can call get_handle in __init__() or
-# something instead of in each method that needs a handle.
-
-# TODO: Broken; must revisit use cases.
-# e.g. What can init expect?
 class SingleSummoner:
     """
     Contains methods required to maintain the front-end's summoner page.
