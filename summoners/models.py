@@ -9,10 +9,9 @@ logger = logging.getLogger(__name__)
 def standardize_name(name):
         return name.replace(' ', '').lower()
 
-# TODO: Ensure all regions are stored capitalized.
-
 class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
+        region = region.upper()
         logger.info("Creating summoner with region '{}' from: {}".format(region, attrs))
 
         return self.create(summoner_id=attrs['id'],
@@ -28,11 +27,11 @@ class SummonerManager(models.Manager):
                            profile_icon_id=attrs['profileIcon'],
                            name=attrs['summonerName'],
                            std_name=standardize_name(attrs['summonerName']),
-                           region=region)
+                           region=region.upper())
 
     def create_or_update_summoner_from_match(self, region, attrs):
         summoner_id = attrs['summonerId']
-        region = region.lower()
+        region = region.upper()
 
         logger.info('create_or_update_summoner_from_match: {} {}'.
                     format(region, summoner_id))
@@ -94,7 +93,7 @@ class Summoner(models.Model):
         self.profile_icon_id = attrs['profileIconId']
         self.revision_date = attrs['revisionDate']
         self.summoner_level = attrs['summonerLevel']
-        self.region = region
+        self.region = region.upper()
         self.save()
 
     def update_from_match(self, attrs):
@@ -118,4 +117,4 @@ class Summoner(models.Model):
         unique_together = ('summoner_id', 'region')
 
     def __str__(self):
-        return "[{}] {}".format(self.region.upper(), self.name)
+        return "[{}] {}".format(self.region, self.name)
