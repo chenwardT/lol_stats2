@@ -3,8 +3,9 @@ Ensures Summoner pages contain up-to-date data.
 """
 
 import logging
-import pytz
 from datetime import datetime
+
+import pytz
 
 from summoners.models import Summoner
 from riot_api.wrapper import RiotAPI
@@ -77,11 +78,17 @@ class SingleSummoner:
 
         return self.summoner
 
-    def if_known_get_handle(self):
-        if self.is_known():
-            return self.get_instance()
-        else:
-            return None
+    def get_match_history(self):
+        RiotAPI.get_match_history(summoner_id=self.summoner_id, region=self.region)
+
+    def get_league(self):
+        RiotAPI.get_league(self.summoner.summoner_id, self.summoner.region)
+
+    # def if_known_get_handle(self):
+    #     if self.is_known():
+    #         return self.get_instance()
+    #     else:
+    #         return None
 
     def is_cache_fresh(self):
         """
@@ -111,6 +118,8 @@ class SingleSummoner:
 
         # TODO: This should probably just be a list of calls to methods on this class.
         self.get_summoner_by_name()
+        self.get_match_history()
+        self.get_league()
 
     def partial_query(self):
         """
@@ -121,9 +130,6 @@ class SingleSummoner:
         -stats summary
         -ranked stats
         """
-
-    def refresh_match_history(self):
-        RiotAPI.get_match_history(summoner_id=self.summoner_id, region=self.region)
 
     # def get_recent_games(self):
     #     logger.info('Summoner - Recent Games Query on [{}] {}'.format(self.region, self.std_name))
