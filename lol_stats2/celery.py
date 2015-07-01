@@ -44,6 +44,10 @@ def riot_api(fn, args):
     A rate-limited task that queries the Riot API using a RiotWatcher instance.
     """
     func = getattr(riot_watcher, fn)
+
+    if 'region' in args:
+        args['region'] = args['region'].lower()
+
     return func(**args)
 
 # This rate limit results in the greatest common multiple of the 2 stated rate limits:
