@@ -25,7 +25,7 @@ class SingleSummoner:
 
     def __init__(self, std_name=None, summoner_id=None, region=None):
         # These attributes are only used to get the summoner instance
-        # and should not be referenced after __init__() completes.
+        # and should not be referenced after __init__ completes.
         self.std_name = std_name
         self.summoner_id = summoner_id
         self.region = region
@@ -43,6 +43,8 @@ class SingleSummoner:
         if not self.is_known():
             self.get_summoner_by_name()
 
+        # TODO: There is a delay in getting summoner data, so can't immediately
+        # call get_instance.
         self.get_instance()
 
     def is_known(self):
@@ -79,7 +81,8 @@ class SingleSummoner:
         return self.summoner
 
     def get_match_history(self):
-        RiotAPI.get_match_history(summoner_id=self.summoner_id, region=self.region)
+        RiotAPI.get_match_history(summoner_id=self.summoner.summoner_id,
+                                  region=self.summoner.region)
 
     def get_league(self):
         RiotAPI.get_league(self.summoner.summoner_id, self.summoner.region)
