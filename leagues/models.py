@@ -11,7 +11,7 @@ class LeagueManager(models.Manager):
                                              name=attrs['name'],
                                              tier=attrs['tier'])
         if possibly_extant_league.exists():
-            league = possibly_extant_league[0]
+            league = possibly_extant_league.get()
             self.update_league(league, attrs, region)
         else:
             self.create_league(attrs, region)
@@ -35,6 +35,8 @@ class League(models.Model):
     queue = models.CharField(max_length=32)     # ex. RANKED_SOLO_5x5
     name = models.CharField(max_length=32)      # ex. Orianna's Warlocks
     tier = models.CharField(max_length=12)      # ex. CHALLENGER
+
+    last_update = models.DateTimeField(auto_now=True)
 
     objects = LeagueManager()
 
@@ -77,6 +79,8 @@ class LeagueEntry(models.Model):
     is_inactive = models.BooleanField()
     is_veteran = models.BooleanField()
     league_points = models.IntegerField()
+
+    # Consider generic association to Summoner/Team
     player_or_team_id = models.CharField(max_length=64)     # ex. TEAM-68594bb0-cce0-11e3-a7cc-782bcb4d1861
     player_or_team_name = models.CharField(max_length=24)   # ex. Smiteless Baron
     wins = models.IntegerField()
