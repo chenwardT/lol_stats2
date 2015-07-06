@@ -129,7 +129,7 @@ class RiotAPI:
             riot_api.apply_async((func, kwargs),
                                  link=get_matches_from_ids.s(region))
 
-@app.task
+@app.task(ignore_result=True)
 def get_matches_from_ids(result, region):
     """
     Callback that parses the result dict for match IDs and feeds them back to
