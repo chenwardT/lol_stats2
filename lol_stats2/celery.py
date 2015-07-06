@@ -174,7 +174,7 @@ def store_get_challenger(result, region):
     """
     League.objects.create_or_update_league(result, region)
 
-@app.task(ignore_result=True)
+@app.task(ignore_result=True, routing_key='store.get_league')
 def store_get_league(result, summoner_id, region):
     """
     Callback that stores the result of the RiotWatcher get_league calls.
