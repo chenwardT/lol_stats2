@@ -58,7 +58,7 @@ class MatchDetail(IterableDataFieldsMixin, models.Model):
     match_type = models.CharField(max_length=16)        # ex. MATCHED_GAME
     match_version = models.CharField(max_length=16)     # ex. 5.9.0.318
     platform_id = models.CharField(max_length=8)        # ex. NA1
-    queue_type = models.CharField(max_length=24)        # ex. RANKED_PREMADE_5x5
+    queue_type = models.CharField(max_length=24)        # ex. RANKED_SOLO_5x5
     region = models.CharField(max_length=4)             # ex. NA
     season = models.CharField(max_length=24)            # ex. PRESEASON2015
 
@@ -195,8 +195,9 @@ class TeamManager(CreateableFromAttrsMixin, models.Manager):
     def create_team(self, attrs):
         team = self.create(**self.init_dict(attrs))
 
-        for b in attrs['bans']:
-            team.bannedchampion_set.create_banned_champion(b)
+        if 'bans' in attrs:
+            for b in attrs['bans']:
+                team.bannedchampion_set.create_banned_champion(b)
 
         return team
 
