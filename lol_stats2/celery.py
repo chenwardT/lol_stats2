@@ -6,9 +6,10 @@ celery -A lol_stats2 worker -l info
 """
 
 import os
+import logging
 
 from celery import Celery
-from riotwatcher.riotwatcher import RiotWatcher
+from riotwatcher.riotwatcher import RiotWatcher, LoLException, error_404
 
 from summoners.models import Summoner
 from champions.models import Champion
@@ -17,6 +18,8 @@ from games.models import Game
 from leagues.models import League
 from matches.models import MatchDetail
 
+logger = logging.getLogger(__name__)
+
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lol_stats2.settings.base')
 
@@ -24,7 +27,7 @@ from django.conf import settings
 
 app = Celery('lol_stats2',
              broker='amqp://',
-             # backend='amqp://'
+             backend='amqp://'
              )
 
 # Using a string here means the worker will not have to pickle the object
@@ -38,17 +41,25 @@ riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 # TODO: Use self.retry(), in cases where Riot servers could return 5xx.
 
 # TODO: Create separate task for static API calls (not counted against rate limit).
-@app.task
+@app.task(ignore_result=False)
 def riot_api(fn, args):
     """
     A rate-limited task that queries the Riot API using a RiotWatcher instance.
     """
     func = getattr(riot_watcher, fn)
 
+    print('riot_api fn: {}, args: {}'.format(fn, args))
+
     if 'region' in args:
         args['region'] = args['region'].lower()
 
-    return func(**args)
+    try:
+        result = func(**args)
+    except LoLException as e:
+        if e == error_404:
+            result = {}
+
+    return result
 
 # This rate limit results in the greatest common multiple of the 2 stated rate limits:
 # 10 req / 10 sec
@@ -76,7 +87,7 @@ def store_get_summoner(result, region):
 
     return summoner
 
-@app.task
+@app.task(ignore_result=True)
 def store_get_summoners(result, region):
     """
     Callback that stores the result of RiotWatcher get_summoners calls.
@@ -91,7 +102,7 @@ def store_get_summoners(result, region):
         else:
             Summoner.objects.create_summoner(region, result[summoner_id])
 
-@app.task
+@app.task(ignore_result=True)
 def store_static_get_champion_list(result):
     """
     Callback that stores the result of RiotWatcher static_get_champion_list calls.
@@ -120,7 +131,7 @@ def store_static_get_champion_list(result):
 # it looks like they can be run in parallel (we don't want that) as shown by
 # IntegrityError exceptions.
 # One solution: locking DB when any of these types of tasks run.
-@app.task
+@app.task(ignore_result=True)
 def store_static_get_summoner_spell_list(result):
     """
     Callback that stores the result of RiotWatcher static_get_summoner_list calls.
@@ -134,7 +145,7 @@ def store_static_get_summoner_spell_list(result):
 # TODO: Use game IDs to get match data.
 # This way, you get full participant data, instead of just the 1 player's items, etc.
 # Note: This is unused as MatchDetail is all we're using for now (ranked games).
-@app.task
+@app.task(ignore_result=True)
 def store_get_recent_games(result, summoner_id, region):
     """
     Callback that stores the result of RiotWatcher get_recent_games calls.
@@ -146,7 +157,7 @@ def store_get_recent_games(result, summoner_id, region):
                                    region=region).exists():
             Game.objects.create_game(attrs, summoner_id, region)
 
-@app.task
+@app.task(ignore_result=True)
 def store_get_challenger(result, region):
     """
     Callback that stores the result of RiotWatcher get_challenger calls.
@@ -155,7 +166,7 @@ def store_get_challenger(result, region):
     """
     League.objects.create_or_update_league(result, region)
 
-@app.task
+@app.task(ignore_result=True)
 def store_get_league(result, summoner_id, region):
     """
     Callback that stores the result of the RiotWatcher get_league calls.
@@ -164,9 +175,11 @@ def store_get_league(result, summoner_id, region):
     Stores a previously unknown league or replaces the entirety of the
     summoner's league's entries if it was known.
     """
-    League.objects.create_or_update_league(result[str(summoner_id)][0], region)
+    # Empty dict means that the queried summoner is not in a league.
+    if result != {}:
+        League.objects.create_or_update_league(result[str(summoner_id)][0], region)
 
-@app.task
+@app.task(ignore_result=True)
 def store_get_match(result):
     """
     Callback that stores the result of RiotWatcher get_match calls.
