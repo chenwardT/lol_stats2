@@ -32,7 +32,6 @@ class SingleSummoner:
         self.summoner_id = summoner_id
         self.region = region
         self.summoner = None
-        self.tasks = {'get_summoner': None}
 
         if self.region not in self._ALLOWED_REGIONS:
             raise ValueError('Invalid region: {}; must be one of {}'
@@ -59,7 +58,7 @@ class SingleSummoner:
                 print('_', end='',flush=True)
                 time.sleep(.1)
 
-        print('Retrieved {}'.format(self.summoner))
+        print('Retrieved {}'.format(self.get_instance()))
 
     def is_known(self):
         if self.summoner_id:
@@ -103,12 +102,6 @@ class SingleSummoner:
 
     def get_league(self):
         RiotAPI.get_league(self.summoner.summoner_id, self.summoner.region)
-
-    # def if_known_get_handle(self):
-    #     if self.is_known():
-    #         return self.get_instance()
-    #     else:
-    #         return None
 
     def is_cache_fresh(self):
         """
