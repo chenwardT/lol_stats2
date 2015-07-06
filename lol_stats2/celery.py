@@ -9,7 +9,11 @@ import os
 import logging
 
 from celery import Celery
-from riotwatcher.riotwatcher import RiotWatcher, LoLException, error_404
+from riotwatcher.riotwatcher import (RiotWatcher,
+                                     LoLException,
+                                     error_404,
+                                     error_500,
+                                     error_503)
 
 from summoners.models import Summoner
 from champions.models import Champion
@@ -41,8 +45,8 @@ riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 # TODO: Use self.retry(), in cases where Riot servers could return 5xx.
 
 # TODO: Create separate task for static API calls (not counted against rate limit).
-@app.task(ignore_result=False)
-def riot_api(fn, args):
+@app.task(bind=True, ignore_result=False)
+def riot_api(self, fn, args):
     """
     A rate-limited task that queries the Riot API using a RiotWatcher instance.
     """
@@ -56,8 +60,12 @@ def riot_api(fn, args):
     try:
         result = func(**args)
     except LoLException as e:
-        if e == error_404:
-            result = {}
+        print(e)
+        # TODO: Test this.
+        if e == error_500 or e == error_503:
+            print('5xx error, retrying ({})'.format(e))
+            raise self.retry(exc=e)
+        result = {}
 
     return result
 
@@ -69,7 +77,7 @@ app.control.rate_limit('lol_stats2.celery.riot_api', '.6/s')
 
 # TODO: Consider renaming these tasks.
 # TODO: Can these tasks be put in a class and passed around instead of individually?
-@app.task
+@app.task(routing_key='store.get_summoner')
 def store_get_summoner(result, region):
     """
     Callback that stores the result of RiotWatcher get_summoner calls.
@@ -190,7 +198,8 @@ def store_get_match(result):
 
     Note: Timeline data not implemented.
     """
-    MatchDetail.objects.create_match(result)
+    if result != {}:
+        MatchDetail.objects.create_match(result)
 
 # @app.task
 # def store_get_match_history(result, region):
