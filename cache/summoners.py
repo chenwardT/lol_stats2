@@ -7,8 +7,10 @@ from datetime import datetime
 import time
 
 import pytz
+from django.db import transaction
 
 from summoners.models import Summoner
+from leagues.models import LeagueEntry
 from riot_api.wrapper import RiotAPI
 from lol_stats2.celery import app, riot_api, store_get_summoner
 
@@ -43,10 +45,7 @@ class SingleSummoner:
         # If the summoner isn't already known, the first time we get it
         # will be via name, meaning we have a std_name to work with.
         if not self.is_known():
-            task = riot_api.apply_async(('get_summoner',
-                                         {'name': self.std_name,
-                                          'region': self.region}),
-                                        link=store_get_summoner.s(region=region))
+            task = RiotAPI.get_summoner(self.std_name, self.region)
 
             # Wait until result is stored.
 
@@ -62,7 +61,7 @@ class SingleSummoner:
 
     def is_known(self):
         if self.summoner_id:
-            return Summoner.objects.filter(summoner_id=self.summoner,
+            return Summoner.objects.filter(summoner_id=self.summoner_id,
                                            region=self.region).exists()
         else:
             return Summoner.objects.filter(std_name=self.std_name,
@@ -143,6 +142,12 @@ class SingleSummoner:
         -stats summary
         -ranked stats
         """
+
+    def query_if_no_league(self):
+        with transaction.atomic():
+            if not LeagueEntry.objects.filter(player_or_team_id=self.summoner.summoner_id,
+                                              league__region=self.summoner.region).exists():
+                self.get_league()
 
     # def get_recent_games(self):
     #     logger.info('Summoner - Recent Games Query on [{}] {}'.format(self.region, self.std_name))

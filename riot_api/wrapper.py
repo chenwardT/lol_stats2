@@ -24,8 +24,8 @@ class RiotAPI:
         func = 'get_summoner'
         kwargs = {'name': name, 'region': region}
 
-        riot_api.apply_async((func, kwargs),
-                             link=store_get_summoner.s(region=region))
+        return riot_api.apply_async((func, kwargs),
+                                    link=store_get_summoner.s(region=region))
 
     @staticmethod
     def get_summoners(names=None, ids=None, region=None):
