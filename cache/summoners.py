@@ -4,11 +4,13 @@ Ensures Summoner pages contain up-to-date data.
 
 import logging
 from datetime import datetime
+import time
 
 import pytz
 
 from summoners.models import Summoner
 from riot_api.wrapper import RiotAPI
+from lol_stats2.celery import app, riot_api, store_get_summoner
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ class SingleSummoner:
         self.summoner_id = summoner_id
         self.region = region
         self.summoner = None
+        self.tasks = {'get_summoner': None}
 
         if self.region not in self._ALLOWED_REGIONS:
             raise ValueError('Invalid region: {}; must be one of {}'
@@ -41,11 +44,22 @@ class SingleSummoner:
         # If the summoner isn't already known, the first time we get it
         # will be via name, meaning we have a std_name to work with.
         if not self.is_known():
-            self.get_summoner_by_name()
+            task = riot_api.apply_async(('get_summoner',
+                                         {'name': self.std_name,
+                                          'region': self.region}),
+                                        link=store_get_summoner.s(region=region))
 
-        # TODO: There is a delay in getting summoner data, so can't immediately
-        # call get_instance.
-        self.get_instance()
+            # Wait until result is stored.
+
+            while task.children is None:
+                print('.', end='',flush=True)
+                time.sleep(.1)
+
+            while task.children[0].status != 'SUCCESS':
+                print('_', end='',flush=True)
+                time.sleep(.1)
+
+        print('Retrieved {}'.format(self.summoner))
 
     def is_known(self):
         if self.summoner_id:
@@ -57,6 +71,9 @@ class SingleSummoner:
 
     def get_summoner_by_name(self):
         RiotAPI.get_summoner(region=self.region, name=self.std_name)
+
+    def get_summoner_by_id(self):
+        RiotAPI.get_summoners(region=self.region, ids=[self.summoner.summoner_id])
 
     def get_instance(self):
         """
@@ -120,7 +137,7 @@ class SingleSummoner:
         logger.info('Summoner - Full Query on [{}] {}'.format(self.region, self.std_name))
 
         # TODO: This should probably just be a list of calls to methods on this class.
-        self.get_summoner_by_name()
+        self.get_summoner_by_id()
         self.get_match_history()
         self.get_league()
 
@@ -145,3 +162,8 @@ class SingleSummoner:
     #
     #     RiotAPI.get_recent_games(summoner_id=self.summoner.summoner_id,
     #                              region=self.region)
+
+@app.task
+def get_summoner_task(std_name, region):
+    riot_api.apply_async(('get_summoner', {'name': std_name,'region': region}),
+                         link=store_get_summoner.s(region=region))
