@@ -41,6 +41,39 @@ when starting up.
 You may also configure your SECRET_KEY and RIOT_API_KEY environment variables via 
 "postactivate" and "predeactivate" scripts.
 
+##Celery
+
+Celery is configured to use a locally hosted AMQP broker and AMQP backend.
+A single topic-type exchange, 'default', is configured to route messages to one of
+3 queues. See settings/base.py for details.
+
+Workers should be started independently due to an issue with celery multi:
+
+`celery -A lol_stats2 worker -l info -Q default -n default.%h`
+
+`celery -A lol_stats2 worker -l info -Q match_ids -n match_ids.%h`
+
+`celery -A lol_stats2 worker -l info -Q store -n store.%h`
+
+The celery monitor is optional, and listens on port 5555 by default:
+
+`celery -A lol_stats2 flower`
+
+See [http://celery.readthedocs.org/en/latest/userguide/monitoring.html#flower-real-time-celery-web-monitor](http://celery.readthedocs.org/en/latest/userguide/monitoring.html#flower-real-time-celery-web-monitor).
+
+Finally, the rabbitmq monitor (defaults; port: 15672, login: guest/guest) can be
+enabled via:
+
+`rabbitmq-plugins enable rabbitmq_management`
+
+This only needs to be run once and by default will start on boot.
+  
+See [https://www.rabbitmq.com/management.html](https://www.rabbitmq.com/management.html).
+
+Since a results backend is enabled, special care must be taken to consume results
+from tasks that are not decorated with `ignore_results=True`. Failure to do so will
+ result in excessive memory use due to result storage.
+
 ##Tests
 
 If Selenium throws:
