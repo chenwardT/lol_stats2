@@ -11,6 +11,7 @@ from lol_stats2.celery import (app,
                                store_get_recent_games,
                                store_get_challenger,
                                store_get_league,
+                               store_get_leagues,
                                store_get_match)
 from matches.models import MatchDetail
 
@@ -77,13 +78,24 @@ class RiotAPI:
         """
         Gets a single summoner's league.
 
-        Note: RiotWatcher.get_league() can take multiple summoner IDs as well.
+        Note: see get_leagues for multiple summoners' leagues.
         """
         func = 'get_league'
         kwargs = {'summoner_ids': [summoner_id], 'region': region}
 
         riot_api.apply_async((func, kwargs),
                              link=store_get_league.s(summoner_id, region))
+
+    @staticmethod
+    def get_leagues(summoner_ids, region=None):
+        """
+        Gets multiple summoner's league.
+        """
+        func = 'get_league'
+        kwargs = {'summoner_ids': summoner_ids, 'region': region}
+
+        riot_api.apply_async((func, kwargs),
+                             link=store_get_leagues.s(summoner_ids, region))
 
     @staticmethod
     def get_match(match_id, region=None, include_timeline=False):

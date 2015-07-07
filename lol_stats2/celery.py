@@ -174,6 +174,10 @@ def store_get_challenger(result, region):
     """
     League.objects.create_or_update_league(result, region)
 
+# TODO: If a summoner is in multiple leagues, e.g. they are on 2+ teams,
+# or plays 3s and 5s, there will be multiple entries in the list,
+# so using [0] is unsound.
+
 @app.task(ignore_result=True, routing_key='store.get_league')
 def store_get_league(result, summoner_id, region):
     """
@@ -183,9 +187,25 @@ def store_get_league(result, summoner_id, region):
     Stores a previously unknown league or replaces the entirety of the
     summoner's league's entries if it was known.
     """
+    # TODO: Fix IntegrityError, duplicate player_or_team_id + league_id.
     # Empty dict means that the queried summoner is not in a league.
     if result != {}:
         League.objects.create_or_update_league(result[str(summoner_id)][0], region)
+
+@app.task(ignore_result=True, routing_key='store.get_leagues')
+def store_get_leagues(result, summoner_ids, region):
+    """
+    Callback that stores the result of the RiotWatcher get_league calls.
+    `summoner_id` is expected to be the single key of the `result` dict.
+
+    Stores a previously unknown league or replaces the entirety of the
+    summoner's league's entries if it was known.
+    """
+    # TODO: Fix IntegrityError, duplicate player_or_team_id + league_id.
+    # Empty dict means that the queried summoner is not in a league.
+    if result != {}:
+        for key in result:
+                League.objects.create_or_update_league(result[str(key)][0], region)
 
 @app.task(ignore_result=True)
 def store_get_match(result):
