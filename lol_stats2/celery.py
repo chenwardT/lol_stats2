@@ -52,11 +52,12 @@ def riot_api(self, fn, args):
     """
     func = getattr(riot_watcher, fn)
 
-    print('riot_api fn: {}, args: {}'.format(fn, args))
-
     if 'region' in args:
         args['region'] = args['region'].lower()
 
+    print('riot_api fn: {}, args: {}'.format(fn, args))
+
+    # TODO: This is dangerous as it hides exceptions from flower.
     try:
         result = func(**args)
     except LoLException as e:
@@ -95,7 +96,11 @@ def store_get_summoner(result, region):
 
     return summoner
 
-@app.task(ignore_result=True)
+# TODO: Seems to not be filling out all data.
+# Check that Summoners created from Matches are getting their remaining
+# data here!
+# Also check get_summoner for same.
+@app.task(ignore_result=True, routing_key='store.get_summoners')
 def store_get_summoners(result, region):
     """
     Callback that stores the result of RiotWatcher get_summoners calls.
@@ -105,7 +110,7 @@ def store_get_summoners(result, region):
             summoner_id=summoner_id, region=region)
 
         if potentially_extant_summoner.exists():
-            summoner = potentially_extant_summoner[0]
+            summoner = potentially_extant_summoner.get()
             summoner.update(region, result[summoner_id])
         else:
             Summoner.objects.create_summoner(region, result[summoner_id])
@@ -138,7 +143,6 @@ def store_static_get_champion_list(result):
 # TODO: In testing, when this got ran repeatedly in a short period of time,
 # it looks like they can be run in parallel (we don't want that) as shown by
 # IntegrityError exceptions.
-# One solution: locking DB when any of these types of tasks run.
 @app.task(ignore_result=True)
 def store_static_get_summoner_spell_list(result):
     """
@@ -174,10 +178,6 @@ def store_get_challenger(result, region):
     """
     League.objects.create_or_update_league(result, region)
 
-# TODO: If a summoner is in multiple leagues, e.g. they are on 2+ teams,
-# or plays 3s and 5s, there will be multiple entries in the list,
-# so using [0] is unsound.
-
 @app.task(ignore_result=True, routing_key='store.get_league')
 def store_get_league(result, summoner_id, region):
     """
@@ -190,8 +190,10 @@ def store_get_league(result, summoner_id, region):
     # TODO: Fix IntegrityError, duplicate player_or_team_id + league_id.
     # Empty dict means that the queried summoner is not in a league.
     if result != {}:
-        League.objects.create_or_update_league(result[str(summoner_id)][0], region)
+        for league in result[str(summoner_id)]:
+            League.objects.create_or_update_league(result[str(summoner_id)][league], region)
 
+# TODO: Fix IntegrityError, duplicate player_or_team_id + league_id.
 @app.task(ignore_result=True, routing_key='store.get_leagues')
 def store_get_leagues(result, summoner_ids, region):
     """
@@ -201,11 +203,11 @@ def store_get_leagues(result, summoner_ids, region):
     Stores a previously unknown league or replaces the entirety of the
     summoner's league's entries if it was known.
     """
-    # TODO: Fix IntegrityError, duplicate player_or_team_id + league_id.
     # Empty dict means that the queried summoner is not in a league.
     if result != {}:
-        for key in result:
-                League.objects.create_or_update_league(result[str(key)][0], region)
+        for summoner_id in result:
+            for league in result[id]:
+                League.objects.create_or_update_league(result[str(summoner_id)][league], region)
 
 @app.task(ignore_result=True)
 def store_get_match(result):
@@ -221,6 +223,7 @@ def store_get_match(result):
     if result != {}:
         MatchDetail.objects.create_match(result)
 
+# Unused, see cache.wrapper.get_matches_from_ids
 # @app.task
 # def store_get_match_history(result, region):
 #     """
