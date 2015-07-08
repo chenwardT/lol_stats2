@@ -34,19 +34,20 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
             if not self.filter(match_id=attrs['matchId'],
                                region=attrs['region']).exists():
 
-                logging.info('Creating match: {} {}'.format(attrs['region'],
-                                                            attrs['matchId']))
                 match = self.create(**self.init_dict(attrs))
 
-                for p in attrs['participants']:
-                    match.participant_set.create_participant(p)
+        if match:
+            for p in attrs['participants']:
+                match.participant_set.create_participant(p)
 
-                for pi in attrs['participantIdentities']:
-                    match.participantidentity_set.create_participant_identity(pi)
+            for pi in attrs['participantIdentities']:
+                match.participantidentity_set.create_participant_identity(pi)
 
-                for t in attrs['teams']:
-                    match.team_set.create_team(t)
+            for t in attrs['teams']:
+                match.team_set.create_team(t)
 
+        logging.info('Created match: {} {}'.format(attrs['region'],
+                                                   attrs['matchId']))
         return match
 
 class MatchDetail(IterableDataFieldsMixin, models.Model):
