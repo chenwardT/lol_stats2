@@ -26,5 +26,6 @@ urlpatterns = patterns('',
     url(r'^search/', search),
     url(r'^refresh/', refresh, name='refresh'),
 
+    url(r'^grappelli/', include('grappelli.urls')), # grappelli URLS
     url(r'^admin/', include(admin.site.urls)),
 )
