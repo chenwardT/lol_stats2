@@ -12,9 +12,9 @@ class LeagueManager(models.Manager):
                                              tier=attrs['tier'])
         if possibly_extant_league.exists():
             league = possibly_extant_league.get()
-            self.update_league(league, attrs, region)
+            return self.update_league(league, attrs, region)
         else:
-            self.create_league(attrs, region)
+            return self.create_league(attrs, region)
 
     def create_league(self, attrs, region):
         league = self.create(region=region, queue=attrs['queue'],
@@ -22,10 +22,14 @@ class LeagueManager(models.Manager):
         logger.info('Creating league: {}'.format(league))
         league.leagueentry_set.create_entries(attrs)
 
+        return league
+
     def update_league(self, league, attrs, region):
         logger.info('Updating league: {}'.format(league))
         league.leagueentry_set.all().delete()
         league.leagueentry_set.create_entries(attrs)
+
+        return league
 
 class League(models.Model):
     """
@@ -48,6 +52,7 @@ class League(models.Model):
         unique_together = ('region', 'queue', 'name', 'tier')
 
 class LeagueEntryManager(models.Manager):
+    # TODO: Descend into MiniSeries and create those attrs.
     def create_entry(self, attrs):
         entry = self.create(division=attrs['division'],
                             is_fresh_blood=attrs['isFreshBlood'],
