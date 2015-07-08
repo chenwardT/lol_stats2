@@ -31,7 +31,7 @@ from django.conf import settings
 
 app = Celery('lol_stats2',
              broker='amqp://',
-             backend='amqp://'
+             backend='redis://'
              )
 
 # Using a string here means the worker will not have to pickle the object

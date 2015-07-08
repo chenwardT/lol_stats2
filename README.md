@@ -43,7 +43,7 @@ You may also configure your SECRET_KEY and RIOT_API_KEY environment variables vi
 
 ##Celery
 
-Celery is configured to use a locally hosted AMQP broker and AMQP backend.
+Celery is configured to use a locally hosted AMQP broker with a Redis result backend.
 A single topic-type exchange, 'default', is configured to route messages to one of
 3 queues. See settings/base.py for details.
 
@@ -69,10 +69,6 @@ enabled via:
 This only needs to be run once and by default will start on boot.
   
 See [https://www.rabbitmq.com/management.html](https://www.rabbitmq.com/management.html).
-
-Since a results backend is enabled, special care must be taken to consume results
-from tasks that are not decorated with `ignore_results=True`. Failure to do so will
- result in excessive memory use due to result storage.
 
 ##Tests
 
