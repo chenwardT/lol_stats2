@@ -38,8 +38,11 @@ def get_league_if_none(summoners=None):
     print("{} queries will be made to fetch {} summoners' leagues.".format(len(chunked),
                                                                           len(query_list)))
 
-    for group in chunked:
-        RiotAPI.get_leagues(group, region)
+    response = input('Proceed? (y/[n])\n')
+
+    if response == 'y':
+        for group in chunked:
+            RiotAPI.get_league(group, region)
 
 def get_summoners_from_league_entries(league_entries=None, region=None):
     """
@@ -77,8 +80,11 @@ def get_summoners_from_league_entries(league_entries=None, region=None):
     print("{} queries will be made to fetch {} summoners.".format(len(chunked),
                                                                   len(query_list)))
 
-    for group in chunked:
-        RiotAPI.get_summoners(ids=group, region=region)
+    response = input('Proceed? (y/[n])\n')
+
+    if response == 'y':
+        for group in chunked:
+            RiotAPI.get_summoners(ids=group, region=region)
 
 # TODO: Allow for list of summoner objects to be passed in.
 def get_matches_for_summoners_without_history(summoners=None, region=None,
@@ -97,6 +103,9 @@ def get_matches_for_summoners_without_history(summoners=None, region=None,
           "{} summoners.".format(len(query_list) * (num_matches + 1), num_matches,
                                  len(query_list)))
 
-    for summoner in query_list:
-        RiotAPI.get_match_history(summoner.summoner_id, region,
-                                  ranked_queues=ranked_queues, end_index=num_matches)
+    response = input('Proceed? (y/[n])\n')
+
+    if response == 'y':
+        for summoner in query_list:
+            RiotAPI.get_match_history(summoner.summoner_id, region,
+                                      ranked_queues=ranked_queues, end_index=num_matches)
