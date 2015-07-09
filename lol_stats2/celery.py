@@ -86,6 +86,7 @@ def store_get_summoner(result, region):
 
     Returns the created/updated Summoner object.
     """
+    region = region.upper()
     query = Summoner.objects.filter(region=region, summoner_id=result['id'])
 
     if not query.exists():
@@ -105,6 +106,8 @@ def store_get_summoners(result, region):
     """
     Callback that stores the result of RiotWatcher get_summoners calls.
     """
+    region = region.upper()
+
     for summoner_id in result:
         potentially_extant_summoner = Summoner.objects.filter(
             summoner_id=summoner_id, region=region)
@@ -124,7 +127,6 @@ def store_static_get_champion_list(result):
     Returns a list of Champion objects added (None if no additions).
     """
     query = Champion.objects.all()
-
     created = []
 
     if not query.exists():
