@@ -109,3 +109,26 @@ def get_matches_for_summoners_without_history(summoners=None, region=None,
         for summoner in query_list:
             RiotAPI.get_match_history(summoner.summoner_id, region,
                                       ranked_queues=ranked_queues, end_index=num_matches)
+
+def update_summoners(summoners=None, region=None):
+    """
+    Accepts an iterable of Summoner objects and fully updates their fields.
+    """
+    ids = []
+
+    for summoner in summoners:
+        ids.append(summoner.summoner_id)
+
+    query_list = []
+
+    for chunk in chunks(ids, 40):
+        query_list.append(chunk)
+
+    print("{} queries will be made to update {} summoners.".format(len(query_list),
+                                                                  len(ids)))
+
+    response = input('Proceed? (y/[n])\n')
+
+    if response == 'y':
+        for group in query_list:
+            RiotAPI.get_summoners(ids=group, region=region)
