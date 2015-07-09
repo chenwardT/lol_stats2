@@ -52,18 +52,38 @@ class League(models.Model):
         unique_together = ('region', 'queue', 'name', 'tier')
 
 class LeagueEntryManager(models.Manager):
-    # TODO: Descend into MiniSeries and create those attrs.
     def create_entry(self, attrs):
-        entry = self.create(division=attrs['division'],
-                            is_fresh_blood=attrs['isFreshBlood'],
-                            is_hot_streak=attrs['isHotStreak'],
-                            is_inactive=attrs['isInactive'],
-                            is_veteran=attrs['isVeteran'],
-                            league_points=attrs['leaguePoints'],
-                            player_or_team_id=attrs['playerOrTeamId'],
-                            player_or_team_name=attrs['playerOrTeamName'],
-                            wins=attrs['wins'],
-                            losses=attrs['losses'])
+        """
+        Create an entry from a dict of format LeagueEntry DTO.
+        """
+        if 'miniSeries' in attrs:
+            entry = self.create(division=attrs['division'],
+                                is_fresh_blood=attrs['isFreshBlood'],
+                                is_hot_streak=attrs['isHotStreak'],
+                                is_inactive=attrs['isInactive'],
+                                is_veteran=attrs['isVeteran'],
+                                league_points=attrs['leaguePoints'],
+                                player_or_team_id=attrs['playerOrTeamId'],
+                                player_or_team_name=attrs['playerOrTeamName'],
+                                wins=attrs['wins'],
+                                losses=attrs['losses'],
+                                series_losses=attrs['miniSeries']['losses'],
+                                series_progress=attrs['miniSeries']['progress'],
+                                series_target=attrs['miniSeries']['target'],
+                                series_wins=attrs['miniSeries']['wins'])
+        else:
+            entry = self.create(division=attrs['division'],
+                                is_fresh_blood=attrs['isFreshBlood'],
+                                is_hot_streak=attrs['isHotStreak'],
+                                is_inactive=attrs['isInactive'],
+                                is_veteran=attrs['isVeteran'],
+                                league_points=attrs['leaguePoints'],
+                                player_or_team_id=attrs['playerOrTeamId'],
+                                player_or_team_name=attrs['playerOrTeamName'],
+                                wins=attrs['wins'],
+                                losses=attrs['losses'])
+
+            return entry
 
     def create_entries(self, attrs):
         for entry in attrs['entries']:

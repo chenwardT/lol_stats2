@@ -11,7 +11,6 @@ from lol_stats2.celery import (app,
                                store_get_recent_games,
                                store_get_challenger,
                                store_get_league,
-                               store_get_leagues,
                                store_get_match)
 from matches.models import MatchDetail
 
@@ -22,6 +21,9 @@ from matches.models import MatchDetail
 class RiotAPI:
     @staticmethod
     def get_summoner(name=None, region=None):
+        """
+        Gets and stores a single summoner given name and region.
+        """
         func = 'get_summoner'
         kwargs = {'name': name, 'region': region}
 
@@ -30,6 +32,9 @@ class RiotAPI:
 
     @staticmethod
     def get_summoners(names=None, ids=None, region=None):
+        """
+        Gets and stores a list of summoners by name or ID for a given region.
+        """
         func = 'get_summoners'
         kwargs = {'names': names, 'ids': ids, 'region': region}
 
@@ -39,6 +44,9 @@ class RiotAPI:
     @staticmethod
     def static_get_champion_list(region=None, locale=None, version=None,
                                  data_by_id=None, champ_data=None):
+        """
+        Gets and stores the list of champions.
+        """
         func = 'static_get_champion_list'
         kwargs = {'region': region, 'locale': locale, 'version': version,
                   'data_by_id': data_by_id, 'champ_data': champ_data}
@@ -49,6 +57,9 @@ class RiotAPI:
     @staticmethod
     def static_get_summoner_spell_list(region=None, locale=None, version=None,
                                        data_by_id=None, spell_data=None):
+        """
+        Gets and stores the list of summoner spells.
+        """
         func = 'static_get_summoner_spell_list'
         kwargs = {'region': region, 'locale': locale, 'version': version,
                   'data_by_id': data_by_id, 'spell_data': spell_data}
@@ -67,6 +78,9 @@ class RiotAPI:
 
     @staticmethod
     def get_challenger(region=None):
+        """
+        Gets and stores the challenger league for the given region.
+        """
         func = 'get_challenger'
         kwargs = {'region': region}
 
@@ -74,28 +88,20 @@ class RiotAPI:
                              link=store_get_challenger.s(region=region))
 
     @staticmethod
-    def get_league(summoner_id, region=None):
+    def get_league(summoner_ids, region=None):
         """
-        Gets a single summoner's league.
-
-        Note: see get_leagues for multiple summoners' leagues.
-        """
-        func = 'get_league'
-        kwargs = {'summoner_ids': [summoner_id], 'region': region}
-
-        riot_api.apply_async((func, kwargs),
-                             link=store_get_league.s(summoner_id, region))
-
-    @staticmethod
-    def get_leagues(summoner_ids, region=None):
-        """
-        Gets multiple summoner's league.
+        Gets and stores leagues for the given summoner IDs in the given
+        region.
         """
         func = 'get_league'
-        kwargs = {'summoner_ids': summoner_ids, 'region': region}
+
+        if isinstance(summoner_ids, int):
+            kwargs = {'summoner_ids': [summoner_ids], 'region': region}
+        else:
+            kwargs = {'summoner_ids': summoner_ids, 'region': region}
 
         riot_api.apply_async((func, kwargs),
-                             link=store_get_leagues.s(summoner_ids, region))
+                             link=store_get_league.s(summoner_ids, region))
 
     @staticmethod
     def get_match(match_id, region=None, include_timeline=False):
