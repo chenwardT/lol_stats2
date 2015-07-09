@@ -132,3 +132,52 @@ def update_summoners(summoners=None, region=None):
     if response == 'y':
         for group in query_list:
             RiotAPI.get_summoners(ids=group, region=region)
+
+def get_matches_for_leagues(leagues=None, region=None,
+                            ranked_queues='RANKED_SOLO_5x5', num_matches=10):
+    known_summoners = []
+    unknown_summoners = []
+
+    for league in leagues:
+        for league_entry in league.leagueentry_set.all():
+            summoner_query = Summoner.objects.filter(
+                summoner_id=league_entry.player_or_team_id,
+                region=region)
+
+            if summoner_query.exists():
+                known_summoners.append(summoner_query.get().summoner_id)
+            else:
+                unknown_summoners.append(league_entry.player_or_team_id)
+
+    print('known_summoners:\n{}'.format(known_summoners))
+    print('unknown_summoners:\n{}'.format(unknown_summoners))
+
+    summoner_query_list = []
+
+    for chunk in chunks(unknown_summoners, 40):
+        summoner_query_list.append(chunk)
+
+    print('Part 1: Get unknown summoners')
+    print('{} queries will be made to fetch {} summoners.'.format(
+        len(summoner_query_list),
+        len(unknown_summoners)))
+
+    response = input('Proceed? (y/[n])\n')
+
+    if response == 'y':
+        for group in summoner_query_list:
+            RiotAPI.get_summoners(ids=group, region=region)
+
+    known_summoners.extend(unknown_summoners)
+
+    print('Part 2: Get matches')
+    print('At most, {} queries will be made to fetch {} matches.'.format(
+        len(known_summoners) * (num_matches + 1),
+        len(known_summoners) * num_matches))
+
+    response = input('Proceed? (y/[n])\n')
+
+    if response == 'y':
+        for id in known_summoners:
+            RiotAPI.get_match_history(id, region, ranked_queues=ranked_queues,
+                                      end_index=num_matches)
