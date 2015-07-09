@@ -63,8 +63,7 @@ class LeagueTestCase(TestCase):
         """
         Update the created League with new entries.
         """
-        updated_attrs = self.attrs
-
+        updated_attrs = self.attrs.copy()
         old_names = []
 
         for name in self.created.leagueentry_set.order_by(
@@ -75,6 +74,26 @@ class LeagueTestCase(TestCase):
         updated_attrs['entries'][1]['playerOrTeamName'] = 'challenger4'
 
         League.objects.update_league(self.created, updated_attrs, self.region)
+        new_names = []
+
+        for name in self.created.leagueentry_set.order_by(
+                'player_or_team_name').values('player_or_team_name'):
+            new_names.append(name)
+
+        self.assertNotEqual(old_names, new_names)
+
+    def test_create_or_update_update_branch(self):
+        updated_attrs = self.attrs.copy()
+        old_names = []
+
+        for name in self.created.leagueentry_set.order_by(
+                'player_or_team_name').values('player_or_team_name'):
+            old_names.append(name)
+
+        updated_attrs['entries'][0]['playerOrTeamName'] = 'challenger3'
+        updated_attrs['entries'][1]['playerOrTeamName'] = 'challenger4'
+
+        League.objects.create_or_update_league(updated_attrs, self.region)
 
         new_names = []
 
@@ -83,3 +102,12 @@ class LeagueTestCase(TestCase):
             new_names.append(name)
 
         self.assertNotEqual(old_names, new_names)
+
+    def test_create_or_update_create_branch(self):
+        self.created.delete()
+
+        self.assertFalse(League.objects.filter(name="Faker's Fighters").exists())
+
+        League.objects.create_or_update_league(self.attrs, self.region)
+
+        self.assertTrue(League.objects.filter(name="Faker's Fighters").exists())
