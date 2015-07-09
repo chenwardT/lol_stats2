@@ -10,8 +10,7 @@ class ChampionTestCase(TestCase):
 
     def test_champion_created(self):
         """
-        Create a Champion instance with create_champion, passing an init dict
-        as RiotWatcher would get and ensure it has the expected attributes.
+        Ensure the Champion created in setUp has the expected attributes.
         """
 
         wilgo_query = Champion.objects.filter(name='Wilgo')
