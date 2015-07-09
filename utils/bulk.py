@@ -1,7 +1,11 @@
+from django.db.models import Count
+
 from .functions import chunks
 from leagues.models import LeagueEntry
 from summoners.models import Summoner
 from riot_api.wrapper import RiotAPI
+
+_MAX_SUMMONER_IDS_PER_QUERY = 40
 
 def get_league_if_none(summoners=None):
     """
@@ -45,7 +49,6 @@ def get_summoners_from_league_entries(league_entries=None, region=None):
     Accepts an iterable of LeagueEntry objects and a region.
     Summoner queries are sent as chunks of at most 40 IDs.
     """
-    _MAX_SUMMONER_IDS_PER_QUERY = 40
 
     if league_entries is None:
         raise ValueError('league_entries must not be None.')
@@ -76,3 +79,24 @@ def get_summoners_from_league_entries(league_entries=None, region=None):
 
     for group in chunked:
         RiotAPI.get_summoners(ids=group, region=region)
+
+# TODO: Allow for list of summoner objects to be passed in.
+def get_matches_for_summoners_without_history(summoners=None, region=None,
+                                              threshold=1, num_matches=10,
+                                              ranked_queues='RANKED_SOLO_5x5'):
+    match_count = \
+        summoners.annotate(match_cnt=Count('participantidentity'))
+
+    query_list = []
+
+    for summoner in match_count:
+        if summoner.match_cnt < threshold:
+            query_list.append(summoner)
+
+    print("{} queries will be made to fetch {} matches for each of the "
+          "{} summoners.".format(len(query_list) * (num_matches + 1), num_matches,
+                                 len(query_list)))
+
+    for summoner in query_list:
+        RiotAPI.get_match_history(summoner.summoner_id, region,
+                                  ranked_queues=ranked_queues, end_index=num_matches)
