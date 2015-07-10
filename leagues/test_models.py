@@ -139,8 +139,8 @@ class LeagueEntryTestCase(TestCase):
         """
         Create a LeagueEntry from a dict that includes miniseries data.
 
-        Since there is no way to create entries via the LeagueEntryManager
-        due to the league_id FK requirement, we use a league's leagueentry_set.
+        Since create_league does not create an association through league_id,
+        and the league_id FK requirement, we use a league's leagueentry_set.
         """
         league = League.objects.create(region='TEST',
                                        queue='TEST_QUEUE',
@@ -156,8 +156,8 @@ class LeagueEntryTestCase(TestCase):
         """
         Create a LeagueEntry from a dict that doesn't include miniseries data.
 
-        Since there is no way to create entries via the LeagueEntryManager
-        due to the league_id FK requirement, we use a league's leagueentry_set.
+        Since create_league does not create an association through league_id,
+        and the league_id FK requirement, we use a league's leagueentry_set.
         """
         league = League.objects.create(region='TEST',
                                        queue='TEST_QUEUE',
