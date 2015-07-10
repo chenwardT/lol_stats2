@@ -88,6 +88,8 @@ class ParticipantManager(ParticipantFromAttrsMixin, models.Manager):
 
         participant.participanttimeline_set.create_participant_timeline(attrs['timeline'])
 
+        return participant
+
 class Participant(IterableDataFieldsMixin, models.Model):
     champion_id = models.IntegerField()
     highest_achieved_season_tier = models.CharField(max_length=16, null=True, blank=True)
@@ -241,6 +243,8 @@ class MasteryManager(CreateableFromAttrsMixin, models.Manager):
     def create_mastery(self, attrs):
         mastery = self.create(**self.init_dict(attrs))
 
+        return mastery
+
 class Mastery(IterableDataFieldsMixin, models.Model):
     mastery_id = models.BigIntegerField()
     rank = models.BigIntegerField()
@@ -253,7 +257,9 @@ class Mastery(IterableDataFieldsMixin, models.Model):
 
 class ParticipantTimelineManager(CreateableFromAttrsMixin, models.Manager):
     def create_participant_timeline(self, attrs):
-        return self.create(**self.init_dict(attrs))
+        participant_timeline = self.create(**self.init_dict(attrs))
+
+        return participant_timeline
 
 class ParticipantTimeline(IterableDataFieldsMixin, models.Model):
     # ParticipantTimelineData types to be added later.
@@ -293,6 +299,8 @@ class RuneManager(CreateableFromAttrsMixin, models.Manager):
     def create_rune(self, attrs):
         rune = self.create(**self.init_dict(attrs))
 
+        return rune
+
 class Rune(IterableDataFieldsMixin, models.Model):
     rank = models.IntegerField()
     rune_id = models.IntegerField()
@@ -306,7 +314,9 @@ class Rune(IterableDataFieldsMixin, models.Model):
 
 class BannedChampionManager(CreateableFromAttrsMixin, models.Manager):
     def create_banned_champion(self, attrs):
-        return self.create(**self.init_dict(attrs))
+        banned_champion = self.create(**self.init_dict(attrs))
+
+        return banned_champion
 
 class BannedChampion(IterableDataFieldsMixin, models.Model):
     champion_id = models.IntegerField()
