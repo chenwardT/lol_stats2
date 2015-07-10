@@ -35,7 +35,7 @@ class League(models.Model):
     """
     Maps to Riot API League DTO.
     """
-    region = models.CharField(max_length=4)     # ex. na
+    region = models.CharField(max_length=4, db_index=True)     # ex. na
     queue = models.CharField(max_length=32)     # ex. RANKED_SOLO_5x5
     name = models.CharField(max_length=32)      # ex. Orianna's Warlocks
     tier = models.CharField(max_length=12)      # ex. CHALLENGER
@@ -106,7 +106,7 @@ class LeagueEntry(models.Model):
     league_points = models.IntegerField()
 
     # Consider generic association to Summoner/Team
-    player_or_team_id = models.CharField(max_length=64)     # ex. TEAM-68594bb0-cce0-11e3-a7cc-782bcb4d1861
+    player_or_team_id = models.CharField(max_length=64, db_index=True)     # ex. TEAM-68594bb0-cce0-11e3-a7cc-782bcb4d1861
     player_or_team_name = models.CharField(max_length=24)   # ex. Smiteless Baron
     wins = models.IntegerField()
     losses = models.IntegerField()

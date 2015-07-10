@@ -54,13 +54,13 @@ class MatchDetail(IterableDataFieldsMixin, models.Model):
     map_id = models.IntegerField()                      # ex. 11
     match_creation = models.BigIntegerField()           # ex. 1432585774909
     match_duration = models.BigIntegerField()           # ex. 1854
-    match_id = models.BigIntegerField()                 # ex. 1835139131
+    match_id = models.BigIntegerField(db_index=True)    # ex. 1835139131
     match_mode = models.CharField(max_length=16)        # ex. CLASSIC
     match_type = models.CharField(max_length=16)        # ex. MATCHED_GAME
     match_version = models.CharField(max_length=16)     # ex. 5.9.0.318
     platform_id = models.CharField(max_length=8)        # ex. NA1
     queue_type = models.CharField(max_length=24)        # ex. RANKED_SOLO_5x5
-    region = models.CharField(max_length=4)             # ex. NA
+    region = models.CharField(max_length=4, db_index=True)  # ex. NA
     season = models.CharField(max_length=24)            # ex. PRESEASON2015
 
     objects = MatchDetailManager()

@@ -39,11 +39,9 @@ class SummonerManager(models.Manager):
         with transaction.atomic():
             if self.is_known(summoner_id, region):
                 summoner = Summoner.objects.get(summoner_id=summoner_id, region=region)
-                logger.info('Summoner found: {}'.format(summoner))
                 summoner.update_from_match(attrs)
             else:
                 summoner = self.create_summoner_from_match(region, attrs)
-                logger.info('Summoner not found, created: {}'.format(summoner))
 
         return summoner
 
@@ -60,7 +58,7 @@ class Summoner(models.Model):
     # TODO: Set to something reasonable; 20 min?
     CACHE_DURATION = timedelta(minutes=1)
 
-    summoner_id = models.BigIntegerField()
+    summoner_id = models.BigIntegerField(db_index=True)
 
     # The name as it appears in game.
     # Names "should" be 16 chars, but sometimes we get weird names like
@@ -70,7 +68,7 @@ class Summoner(models.Model):
     name = models.CharField(max_length=24)
 
     # This is `name` as lowercase with spaces stripped.
-    std_name = models.CharField(max_length=24)
+    std_name = models.CharField(max_length=24, db_index=True)
     profile_icon_id = models.IntegerField()
 
     # Milliseconds epoch TS since something was updated about this summoner,
@@ -79,7 +77,7 @@ class Summoner(models.Model):
     # then we already queried riot API.
     revision_date = models.BigIntegerField(null=True, blank=True)
     summoner_level = models.IntegerField(null=True, blank=True)
-    region = models.CharField(max_length=4)
+    region = models.CharField(max_length=4, db_index=True)
     last_update = models.DateTimeField(auto_now=True)
 
     objects = SummonerManager()
@@ -93,7 +91,7 @@ class Summoner(models.Model):
         self.profile_icon_id = attrs['profileIconId']
         self.revision_date = attrs['revisionDate']
         self.summoner_level = attrs['summonerLevel']
-        self.region = region.upper()
+        self.region = region.upper()        # Unnecessary to touch region?
         self.save()
 
     def update_from_match(self, attrs):
