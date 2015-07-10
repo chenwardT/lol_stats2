@@ -2,42 +2,45 @@ from django.test import TestCase
 
 from .models import League, LeagueEntry
 
+
 class LeagueTestCase(TestCase):
     def setUp(self):
         self.region = 'KR'
         self.attrs = {'queue': 'RANKED_SOLO_5x5',
-                 'name': "Faker's Fighters",
-                 'tier': 'DIAMOND',
-                 'entries': [
-                     {'division': 'I',
-                      'isFreshBlood': True,
-                      'isHotStreak': False,
-                      'isInactive': False,
-                      'isVeteran': True,
-                      'leaguePoints': 99,
-                      'playerOrTeamId': 456789,
-                      'playerOrTeamName': 'challenger1',
-                      'wins': 890,
-                      'losses': 569,
-                      'seriesLosses': 1,
-                      'seriesProgress': 'WWL',
-                      'seriesTarget': 3,
-                      'seriesWins': 2},
-                     {'division': 'IV',
-                      'isFreshBlood': False,
-                      'isHotStreak': False,
-                      'isInactive': False,
-                      'isVeteran': True,
-                      'leaguePoints': 56,
-                      'playerOrTeamId': 123456,
-                      'playerOrTeamName': 'challenger2',
-                      'wins': 231,
-                      'losses': 72,
-                      'seriesLosses': 1,
-                      'seriesProgress': 'WL',
-                      'seriesTarget': 2,
-                      'seriesWins': 1},
-                 ]}
+                      'name': "Faker's Fighters",
+                      'tier': 'DIAMOND',
+                      'entries': [
+                          {'division': 'I',
+                           'isFreshBlood': True,
+                           'isHotStreak': False,
+                           'isInactive': False,
+                           'isVeteran': True,
+                           'leaguePoints': 99,
+                           'playerOrTeamId': 456789,
+                           'playerOrTeamName': 'challenger1',
+                           'wins': 890,
+                           'losses': 569,
+                           'miniSeries':
+                               {'losses': 1,
+                                'progress': 'WWL',
+                                'target': 3,
+                                'wins': 2}},
+                          {'division': 'IV',
+                           'isFreshBlood': False,
+                           'isHotStreak': False,
+                           'isInactive': False,
+                           'isVeteran': True,
+                           'leaguePoints': 56,
+                           'playerOrTeamId': 123456,
+                           'playerOrTeamName': 'challenger2',
+                           'wins': 231,
+                           'losses': 72,
+                           'miniSeries':
+                               {'losses': 1,
+                                'progress': 'WWL',
+                                'target': 3,
+                                'wins': 2}}
+                      ]}
         self.created = League.objects.create_league(self.attrs, self.region)
 
     def test_create(self):
@@ -51,7 +54,6 @@ class LeagueTestCase(TestCase):
             league__region='KR',
             league__tier='DIAMOND').order_by('id')
         fakers_leagueentry_set = self.created.leagueentry_set.order_by('id')
-
         entries = []
 
         for e in fakers_leagueentry_set:
@@ -72,7 +74,6 @@ class LeagueTestCase(TestCase):
 
         updated_attrs['entries'][0]['playerOrTeamName'] = 'challenger3'
         updated_attrs['entries'][1]['playerOrTeamName'] = 'challenger4'
-
         League.objects.update_league(self.created, updated_attrs, self.region)
         new_names = []
 
@@ -82,7 +83,10 @@ class LeagueTestCase(TestCase):
 
         self.assertNotEqual(old_names, new_names)
 
-    def test_create_or_update_update_branch(self):
+    def test_create_or_update_on_extant(self):
+        """
+        Update the created league using create_or_update.
+        """
         updated_attrs = self.attrs.copy()
         old_names = []
 
@@ -92,9 +96,7 @@ class LeagueTestCase(TestCase):
 
         updated_attrs['entries'][0]['playerOrTeamName'] = 'challenger3'
         updated_attrs['entries'][1]['playerOrTeamName'] = 'challenger4'
-
         League.objects.create_or_update_league(updated_attrs, self.region)
-
         new_names = []
 
         for name in self.created.leagueentry_set.order_by(
@@ -103,7 +105,10 @@ class LeagueTestCase(TestCase):
 
         self.assertNotEqual(old_names, new_names)
 
-    def test_create_or_update_create_branch(self):
+    def test_create_or_update_on_new(self):
+        """
+        Create a new league using create_or_update.
+        """
         self.created.delete()
 
         self.assertFalse(League.objects.filter(name="Faker's Fighters").exists())
@@ -111,3 +116,53 @@ class LeagueTestCase(TestCase):
         League.objects.create_or_update_league(self.attrs, self.region)
 
         self.assertTrue(League.objects.filter(name="Faker's Fighters").exists())
+
+class LeagueEntryTestCase(TestCase):
+    def setUp(self):
+        self.attrs_base = {'division': 'I',
+                           'isFreshBlood': True,
+                           'isHotStreak': False,
+                           'isInactive': False,
+                           'isVeteran': True,
+                           'leaguePoints': 99,
+                           'playerOrTeamId': 456789,
+                           'playerOrTeamName': 'challenger1',
+                           'wins': 890,
+                           'losses': 569}
+        self.attrs_miniseries = {'miniSeries':
+                                     {'losses': 1,
+                                      'progress': 'WWL',
+                                      'target': 3,
+                                      'wins': 2}}
+
+    def test_create_with_miniseries(self):
+        """
+        Create a LeagueEntry from a dict that includes miniseries data.
+
+        Since there is no way to create entries via the LeagueEntryManager
+        due to the league_id FK requirement, we use a league's leagueentry_set.
+        """
+        league = League.objects.create(region='TEST',
+                                       queue='TEST_QUEUE',
+                                       name='TEST_NAME',
+                                       tier='TEST_TIER')
+        attrs_full = self.attrs_base.copy()
+        attrs_full.update(self.attrs_miniseries)
+        created = league.leagueentry_set.create_entry(attrs_full)
+
+        self.assertTrue(created.series_losses)
+
+    def test_create_without_miniseries(self):
+        """
+        Create a LeagueEntry from a dict that doesn't include miniseries data.
+
+        Since there is no way to create entries via the LeagueEntryManager
+        due to the league_id FK requirement, we use a league's leagueentry_set.
+        """
+        league = League.objects.create(region='TEST',
+                                       queue='TEST_QUEUE',
+                                       name='TEST_NAME',
+                                       tier='TEST_TIER')
+        created = league.leagueentry_set.create_entry(self.attrs_base)
+
+        self.assertIsNone(created.series_losses)
