@@ -14,6 +14,8 @@ class SpellManager(models.Manager):
                             key=attrs['key'],
                             description=attrs['description'])
 
+        return spell
+
 class SummonerSpell(models.Model):
     """Maps to Riot API summonerSpell DTO."""
     spell_id = models.IntegerField(primary_key=True)
