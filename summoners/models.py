@@ -3,7 +3,6 @@ from datetime import timedelta
 
 from django.db import models, transaction
 
-# FIXME: Not writing to file, but is displayed by Celery worker.
 logger = logging.getLogger(__name__)
 
 def standardize_name(name):
@@ -12,7 +11,7 @@ def standardize_name(name):
 class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
         region = region.upper()
-        logger.info("Creating summoner with region '{}' from: {}".format(region, attrs))
+        logger.debug("region: {}, attrs: {}".format(region, attrs))
 
         return self.create(summoner_id=attrs['id'],
                            name=attrs['name'],
@@ -23,18 +22,20 @@ class SummonerManager(models.Manager):
                            region=region)
 
     def create_summoner_from_match(self, region, attrs):
+        logger.debug("region: {}, attrs: {}".format(region, attrs))
+
         return self.create(summoner_id=attrs['summonerId'],
                            profile_icon_id=attrs['profileIcon'],
                            name=attrs['summonerName'],
                            std_name=standardize_name(attrs['summonerName']),
                            region=region.upper())
 
+    # TODO: Can this be replaced by the django "update_or_create"?
     def create_or_update_summoner_from_match(self, region, attrs):
         summoner_id = attrs['summonerId']
         region = region.upper()
 
-        logger.info('create_or_update_summoner_from_match: {} {}'.
-                    format(region, summoner_id))
+        logger.debug('region: {}, attrs: {}'.format(region, attrs))
 
         with transaction.atomic():
             if self.is_known(summoner_id, region):
@@ -83,7 +84,7 @@ class Summoner(models.Model):
     objects = SummonerManager()
 
     def update(self, region, attrs):
-        logger.info("Updating summoner with region '{}' from: {}".format(region, attrs))
+        logger.debug('region: {}, attrs: {}'.format(region, attrs))
 
         self.summoner_id = attrs['id']
         self.name = attrs['name']
@@ -95,6 +96,8 @@ class Summoner(models.Model):
         self.save()
 
     def update_from_match(self, attrs):
+        logger.debug('attrs: {}'.format(attrs))
+
         self.profile_icon_id = attrs['profileIcon']
         self.name = attrs['summonerName']
         self.std_name = standardize_name(attrs['summonerName'])
