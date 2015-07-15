@@ -27,6 +27,7 @@ class SingleSummoner:
     _ALLOWED_REGIONS = ('BR', 'EUNE', 'EUW', 'KR', 'LAN', 'LAS', 'NA', 'OCE',
                         'TR', 'RU')
 
+    # TODO: Can we combine error logging and exception raising?
     def __init__(self, std_name=None, summoner_id=None, region=None):
         # These attributes are only used to get the summoner instance
         # and should not be referenced after __init__ completes.
@@ -35,17 +36,29 @@ class SingleSummoner:
         self.region = region
         self.summoner = None
 
+        logger.debug('Summoner init started, name: {}, ID: {}, region: {}'.format(
+            self.std_name, self.summoner_id, self.region))
+
+        # TODO: Should this be caught at a lower level, and then we can
+        # try/except here and include exc_info in log?
         if self.region not in self._ALLOWED_REGIONS:
+            logger.error('Invalid region: {}; must be one of {}'
+                             .format(self.region, self._ALLOWED_REGIONS))
             raise ValueError('Invalid region: {}; must be one of {}'
                              .format(self.region, self._ALLOWED_REGIONS))
 
         if not (self.summoner_id or self.std_name):
+            logger.error('Expecting summoner_id or std_name to be present.')
             raise ValueError('Expecting summoner_id or std_name to be present.')
 
         # If the summoner isn't already known, the first time we get it
         # will be via name, meaning we have a std_name to work with.
         if not self.is_known():
             task = RiotAPI.get_summoner(self.std_name, self.region)
+
+            # TODO: When invoked by ajax, must expose task ID to frontend
+            # so data fetching progress can be seen/acted upon, also
+            # remove synchronous behavior here.
 
             # Wait until result is stored.
 
@@ -58,6 +71,7 @@ class SingleSummoner:
                 time.sleep(.1)
 
         print('Retrieved {}'.format(self.get_instance()))
+        logger.debug('Summoner init complete, {}'.format(self.get_instance()))
 
     def is_known(self):
         if self.summoner_id:
@@ -117,7 +131,7 @@ class SingleSummoner:
     def full_query(self):
         """
         Performs a query of all endpoints required to populate page:
-        -summoner, by name
+        -summoner, by name or ID?
         -teams
         -league
         -match history
@@ -126,12 +140,14 @@ class SingleSummoner:
         -ranked stats of this season
         -ranked stats of last season
         """
-        logger.info('Summoner - Full Query on [{}] {}'.format(self.region, self.std_name))
+        logger.info('Summoner full query started on [{}] {}'.format(self.region, self.std_name))
 
         # TODO: This should probably just be a list of calls to methods on this class.
         self.get_summoner_by_id()
         self.get_match_history()
         self.get_league()
+
+        logger.info('Summoner full query completed on [{}] {}'.format(self.region, self.std_name))
 
     def partial_query(self):
         """
