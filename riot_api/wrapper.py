@@ -2,6 +2,8 @@
 A wrapper for for the Celery task that uses the RiotWatcher instance.
 """
 
+import logging
+
 from lol_stats2.celery import (app,
                                riot_api,
                                store_get_summoner,
@@ -13,6 +15,8 @@ from lol_stats2.celery import (app,
                                store_get_league,
                                store_get_match)
 from matches.models import MatchDetail
+
+logger = logging.getLogger(__name__)
 
 # TODO: Lots of repetition of strings here.
 # Consider putting all "store" methods in a class.
@@ -140,6 +144,9 @@ class RiotAPI:
                   'end_index': end_index}
 
         if ranked_queues not in _ALLOWED_QUEUES:
+            logger.error('Unsupported value for "ranked_queues": {};'
+                             'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
+                             .format(ranked_queues))
             raise ValueError('Unsupported value for "ranked_queues": {};'
                              'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
                              .format(ranked_queues))
@@ -157,10 +164,14 @@ def get_matches_from_ids(result, region):
     Returns a count of the matches that were saved (cached match data is not
     fetched).
 
-    Note: Assumes matches are of type 5v5.
+    Note: Only works with matches of type 5x5, which are the only ones allowed
+    by RiotAPI.get_match_history.
     """
     if 'matches' in result:
+        logger.debug('{} matches in result'.format(len(result)))
+
         for match in result['matches']:
             if not MatchDetail.objects.filter(match_id=match['matchId'],
                                               region=region.upper()).exists():
-                RiotAPI.get_match(match['matchId'], region=region, include_timeline=False)
+                RiotAPI.get_match(match['matchId'], region=region,
+                                  include_timeline=False)
