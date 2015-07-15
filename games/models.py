@@ -142,7 +142,7 @@ class RawStat(models.Model):
 
 class GameManager(models.Manager):
     def create_game(self, attrs, summoner_id, region):
-        logger.info('NOP: create_game not implemented.')
+        logger.warn('create_game not implemented.')
         # logger.info("Creating game from: {}".format(attrs))
         # game = self.create()
 

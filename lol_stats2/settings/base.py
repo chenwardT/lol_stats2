@@ -43,7 +43,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'summoners',
     'champions',
-    'games',
+    # 'games',
     'spells',
     'leagues',
     'matches',
