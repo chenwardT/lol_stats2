@@ -16,7 +16,6 @@ from kombu import Queue
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-
 def get_env_variable(var_name):
     try:
         return os.environ[var_name]
@@ -71,7 +70,7 @@ CELERY_DEFAULT_EXCHANGE = 'default'
 CELERY_DEFAULT_EXCHANGE_TYPE = 'topic'
 CELERY_DEFAULT_ROUTING_KEY = 'task.default'
 
-# TODO: Consolidate routing rules. See task decorators.
+# TODO: Consolidate routing rules.
 CELERY_ROUTES = {
     'lol_stats2.celery.store_get_match': {
         'queue': 'store',
@@ -101,19 +100,16 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.request',
 )
 
-
-
 ROOT_URLCONF = 'lol_stats2.urls'
 
 WSGI_APPLICATION = 'lol_stats2.wsgi.application'
 
-# TODO: Configure better.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
+            'format': "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(funcName)s: %(message)s",
             'datefmt': "%d/%b/%Y %H:%M:%S"
         },
         'simple': {
@@ -126,7 +122,7 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'log/debug.log'),
             'formatter': 'verbose'
-        }
+        },
     },
     'loggers': {
         'django': {
@@ -134,10 +130,48 @@ LOGGING = {
             'propagate': True,
             'level': 'DEBUG',
         },
+        'cache': {
+            'handlers': ['file'],
+            'level': 'DEBUG'
+        },
+        'champions': {
+            'handlers': ['file'],
+            'level': 'DEBUG'
+        },
+        'games': {
+            'handlers': ['file'],
+            'level': 'DEBUG'
+        },
+        'leagues': {
+            'handlers': ['file'],
+            'level': 'DEBUG'
+        },
+        # Some celery tasks are defined here, see celery.py
+        'lol_stats2': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+        },
+        'matches': {
+            'handlers': ['file'],
+            'level': 'DEBUG'
+        },
+        'riot_api': {
+            'handlers': ['file'],
+            'level': 'DEBUG'
+        },
+        'spells': {
+            'handlers': ['file'],
+            'level': 'DEBUG'
+        },
         'summoners': {
             'handlers': ['file'],
             'level': 'DEBUG'
-        }
+        },
+        'utils': {
+            'handlers': ['file'],
+            'level': 'DEBUG'
+        },
+
     }
 }
 
