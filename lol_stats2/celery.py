@@ -11,7 +11,10 @@ import logging
 from celery import Celery
 from riotwatcher.riotwatcher import (RiotWatcher,
                                      LoLException,
+                                     error_400,
+                                     error_401,
                                      error_404,
+                                     error_429,
                                      error_500,
                                      error_503)
 
@@ -42,39 +45,50 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 
 # TODO: Move tasks into separate modules.
-# TODO: Use self.retry(), in cases where Riot servers could return 5xx.
-
 # TODO: Create separate task for static API calls (not counted against rate limit).
-@app.task(bind=True, ignore_result=False)
+
+# TODO: Refine parameters for retrying.
+@app.task(bind=True, ignore_result=False, rate_limit='.5/s', max_retries=3,
+          default_retry_delay=2)
 def riot_api(self, fn, args):
     """
     A rate-limited task that queries the Riot API using a RiotWatcher instance.
+
+    Celery accepts a single rate limit for a task, but Riot expresses
+    limits in 2 forms (neither of which can be exceeded):
+    10 req / 10 sec
+    500 req / 10 min
+
+    Ideally, the limit we give Celery could be .8 req/sec, but testing has shown
+    that anything over .5 req/sec is prone to hitting HTTP 429 errors.
+
+    If an LoLException is thrown, automatically retries up to 3 times,
+    with a 2 second delay between each attempt.
     """
     func = getattr(riot_watcher, fn)
 
     if 'region' in args:
         args['region'] = args['region'].lower()
 
-    print('riot_api fn: {}, args: {}'.format(fn, args))
+    logger.debug('{}, args: {}, task ID: {}'.format(fn, args, self.request.id))
 
-    # TODO: This is dangerous as it hides exceptions from flower.
+    # Note: Preventing exceptions from propagating hides them from flower.
+    # Exceptions of type `retry` will however, be shown.
     try:
         result = func(**args)
     except LoLException as e:
-        print(e)
-        # TODO: Test this.
         if e == error_500 or e == error_503:
-            print('5xx error, retrying ({})'.format(e))
+            logger.error('5xx error, retrying ({})'.format(e))
+            raise self.retry(exc=e)
+        if e == error_429:
+            logger.error('429 error, retrying ({})'.format(e))
             raise self.retry(exc=e)
         result = {}
+    except:
+        logger.error('Unhandled exception', exc_info=True)
+        raise
 
     return result
-
-# This rate limit results in the greatest common multiple of the 2 stated rate limits:
-# 10 req / 10 sec
-# 500 req / 10 min
-# ...and tuned down a bit due to inconsistencies between our timing and Riot's.
-app.control.rate_limit('lol_stats2.celery.riot_api', '.6/s')
 
 # TODO: Consider renaming these tasks.
 # TODO: Can these tasks be put in a class and passed around instead of individually?
@@ -91,13 +105,15 @@ def store_get_summoner(result, region):
 
     if not query.exists():
         summoner = Summoner.objects.create_summoner(region, result)
+        logger.debug('Created summoner {}'.format(summoner))
     else:
         summoner = query[0]
         summoner.update(region, result)
+        logger.debug('Updated summoner {}'.format(summoner))
 
     return summoner
 
-# TODO: Seems to not be filling out all data.
+# TODO: Seems to not be filling out all data. Fixed?
 # Check that Summoners created from Matches are getting their remaining
 # data here!
 # Also check get_summoner for same.
@@ -107,6 +123,8 @@ def store_get_summoners(result, region):
     Callback that stores the result of RiotWatcher get_summoners calls.
     """
     region = region.upper()
+    updated = []
+    created = []
 
     for summoner_id in result:
         potentially_extant_summoner = Summoner.objects.filter(
@@ -115,8 +133,13 @@ def store_get_summoners(result, region):
         if potentially_extant_summoner.exists():
             summoner = potentially_extant_summoner.get()
             summoner.update(region, result[summoner_id])
+            updated.append(summoner)
         else:
-            Summoner.objects.create_summoner(region, result[summoner_id])
+            summoner = Summoner.objects.create_summoner(region, result[summoner_id])
+            created.append(summoner)
+
+    logging.debug('Got {} summoners, {} updated, {} created'.format(
+        len(updated) + len(created), len(updated), len(created)))
 
 @app.task(ignore_result=True)
 def store_static_get_champion_list(result):
@@ -140,6 +163,8 @@ def store_static_get_champion_list(result):
             if not Champion.objects.filter(champion_id=attrs['id']).exists():
                 created.append(Champion.objects.create_champion(attrs))
 
+    logger.debug('Got {} champions'.format(len(created)))
+
     return created
 
 # TODO: In testing, when this got ran repeatedly in a short period of time,
@@ -156,9 +181,11 @@ def store_static_get_summoner_spell_list(result):
     for attrs in result['data'].values():
         SummonerSpell.objects.create_spell(attrs)
 
+    logger.debug('Got {} summoner spells'.format(len(result['data'])))
+
+# Unused, as MatchDetail is all we're using for now (ranked games).
 # TODO: Use game IDs to get match data.
 # This way, you get full participant data, instead of just the 1 player's items, etc.
-# Note: This is unused as MatchDetail is all we're using for now (ranked games).
 @app.task(ignore_result=True)
 def store_get_recent_games(result, summoner_id, region):
     """
@@ -171,6 +198,8 @@ def store_get_recent_games(result, summoner_id, region):
                                    region=region).exists():
             Game.objects.create_game(attrs, summoner_id, region)
 
+    logger.debug('Got {} games'.format(len(result['games'])))
+
 @app.task(ignore_result=True)
 def store_get_challenger(result, region):
     """
@@ -179,6 +208,8 @@ def store_get_challenger(result, region):
     Replaces the entirety of the challenger league.
     """
     League.objects.create_or_update_league(result, region)
+
+    logger.debug('region: {}'.format(region))
 
 @app.task(ignore_result=True, routing_key='store.get_league')
 def store_get_league(result, summoner_id, region):
@@ -196,6 +227,9 @@ def store_get_league(result, summoner_id, region):
             for league in result[str(summoner_id)]:
                 League.objects.create_or_update_league(league, region)
 
+            logger.debug('Got {} leagues for summoner ID {}'.format(
+                len(result[str(summoner_id)]), summoner_id))
+
 @app.task(ignore_result=True)
 def store_get_match(result):
     """
@@ -208,7 +242,9 @@ def store_get_match(result):
     Note: Timeline data not implemented.
     """
     if result != {}:
-        MatchDetail.objects.create_match(result)
+        created = MatchDetail.objects.create_match(result)
+
+        logger.debug('Got match {}'.format(created))
 
 # Unused, see cache.wrapper.get_matches_from_ids
 # @app.task
