@@ -4,3 +4,7 @@ seed/
 *.pyc
 *.sql*
 .idea/
+static/
+htmlcov/
+.coverage
+*.pid
