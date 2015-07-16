@@ -173,6 +173,11 @@ LOGGING = {
             'handlers': ['file'],
             'level': 'DEBUG'
         },
+        # python shell
+        'shell': {
+            'handlers': ['file'],
+            'level': 'DEBUG'
+        }
 
     }
 }
