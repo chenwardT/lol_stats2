@@ -58,6 +58,8 @@ REST_FRAMEWORK = {
     ]
 }
 
+CELERYD_POOL_RESTARTS = True
+
 # TODO: Refine MQ topology.
 CELERY_QUEUES = (
     Queue('default', routing_key='default'),
