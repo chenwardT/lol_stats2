@@ -6,7 +6,10 @@ logger = logging.getLogger(__name__)
 
 class ChampionManager(models.Manager):
     def create_champion(self, attrs):
-        logger.info("Creating champion from: {}".format(attrs))
+        """
+        Create a Champion from a dict.
+        """
+        logger.debug(attrs)
 
         champion = self.create(champion_id=attrs['id'],
                                title=attrs['title'],

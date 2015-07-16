@@ -96,7 +96,7 @@ class Summoner(models.Model):
         self.save()
 
     def update_from_match(self, attrs):
-        logger.debug('attrs: {}'.format(attrs))
+        logger.debug(attrs)
 
         self.profile_icon_id = attrs['profileIcon']
         self.name = attrs['summonerName']

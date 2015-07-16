@@ -16,5 +16,5 @@ class SpellManager:
     """
     @staticmethod
     def get_all():
-        logger.info('Spells - Get All')
+        logger.debug()
         RiotAPI.static_get_summoner_spell_list()

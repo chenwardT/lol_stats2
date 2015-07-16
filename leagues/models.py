@@ -19,13 +19,13 @@ class LeagueManager(models.Manager):
     def create_league(self, attrs, region):
         league = self.create(region=region, queue=attrs['queue'],
                              name=attrs['name'], tier=attrs['tier'])
-        logger.info('{}'.format(league))
+        logger.debug(league)
         league.leagueentry_set.create_entries(attrs)
 
         return league
 
     def update_league(self, league, attrs, region):
-        logger.info('{}'.format(league))
+        logger.debug(league)
         league.leagueentry_set.all().delete()
         league.leagueentry_set.create_entries(attrs)
 
@@ -82,6 +82,8 @@ class LeagueEntryManager(models.Manager):
                                 player_or_team_name=attrs['playerOrTeamName'],
                                 wins=attrs['wins'],
                                 losses=attrs['losses'])
+
+        logger.debug(entry)
 
         return entry
 

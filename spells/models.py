@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 class SpellManager(models.Manager):
     def create_spell(self, attrs):
-        logger.info("Creating spell from: {}".format(attrs))
+        logger.debug(attrs)
 
         spell = self.create(spell_id=attrs['id'],
                             summoner_level=attrs['summonerLevel'],

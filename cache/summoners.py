@@ -89,7 +89,8 @@ class SingleSummoner:
 
     def get_instance(self):
         """
-        Get the appropriate model instance and assign it to self.summoner.
+        Get the appropriate model instance and assign it to self.summoner, where
+        it is cached.
 
         Returns summoner instance if found, otherwise None.
         """
@@ -116,9 +117,10 @@ class SingleSummoner:
     def get_league(self):
         RiotAPI.get_league(self.summoner.summoner_id, self.summoner.region)
 
+    # TODO: Consider calling self.summoner.refresh_from_db().
     def is_cache_fresh(self):
         """
-        Returns True if this summoner's data is cached and the entry is fresh,
+        Returns True if this summoner's data is in the DB and the entry is fresh,
         otherwise False.
         """
         # TODO: Iterate over a list of models that we depend on, checking
@@ -140,14 +142,13 @@ class SingleSummoner:
         -ranked stats of this season
         -ranked stats of last season
         """
-        logger.info('Summoner full query started on [{}] {}'.format(self.region, self.std_name))
+        logger.debug('Summoner full query started on [{}] {}'.format(self.region, self.std_name))
 
-        # TODO: This should probably just be a list of calls to methods on this class.
         self.get_summoner_by_id()
         self.get_match_history()
         self.get_league()
 
-        logger.info('Summoner full query completed on [{}] {}'.format(self.region, self.std_name))
+        logger.debug('Summoner full query completed on [{}] {}'.format(self.region, self.std_name))
 
     def partial_query(self):
         """

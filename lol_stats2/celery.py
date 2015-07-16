@@ -3,6 +3,8 @@ Celery config and task definitions.
 
 To start worker, from lol_stats2 dir:
 celery -A lol_stats2 worker -l info
+
+Alternatively, use workers.sh.
 """
 
 import os
@@ -105,11 +107,9 @@ def store_get_summoner(result, region):
 
     if not query.exists():
         summoner = Summoner.objects.create_summoner(region, result)
-        logger.debug('Created summoner {}'.format(summoner))
     else:
         summoner = query[0]
         summoner.update(region, result)
-        logger.debug('Updated summoner {}'.format(summoner))
 
     return summoner
 
@@ -138,7 +138,7 @@ def store_get_summoners(result, region):
             summoner = Summoner.objects.create_summoner(region, result[summoner_id])
             created.append(summoner)
 
-    logging.debug('Got {} summoners, {} updated, {} created'.format(
+    logging.info('Got {} summoners, {} updated, {} created'.format(
         len(updated) + len(created), len(updated), len(created)))
 
 @app.task(ignore_result=True)
@@ -163,7 +163,7 @@ def store_static_get_champion_list(result):
             if not Champion.objects.filter(champion_id=attrs['id']).exists():
                 created.append(Champion.objects.create_champion(attrs))
 
-    logger.debug('Got {} champions'.format(len(created)))
+    logger.info('Got {} champions'.format(len(result['data'])))
 
     return created
 
@@ -181,7 +181,7 @@ def store_static_get_summoner_spell_list(result):
     for attrs in result['data'].values():
         SummonerSpell.objects.create_spell(attrs)
 
-    logger.debug('Got {} summoner spells'.format(len(result['data'])))
+    logger.info('Got {} summoner spells'.format(len(result['data'])))
 
 # Unused, as MatchDetail is all we're using for now (ranked games).
 # TODO: Use game IDs to get match data.
@@ -198,7 +198,7 @@ def store_get_recent_games(result, summoner_id, region):
                                    region=region).exists():
             Game.objects.create_game(attrs, summoner_id, region)
 
-    logger.debug('Got {} games'.format(len(result['games'])))
+    logger.info('Got {} games'.format(len(result['games'])))
 
 @app.task(ignore_result=True)
 def store_get_challenger(result, region):
@@ -209,7 +209,7 @@ def store_get_challenger(result, region):
     """
     League.objects.create_or_update_league(result, region)
 
-    logger.debug('region: {}'.format(region))
+    logger.info('Updated challenger league for {}'.format(region))
 
 @app.task(ignore_result=True, routing_key='store.get_league')
 def store_get_league(result, summoner_id, region):
@@ -227,8 +227,8 @@ def store_get_league(result, summoner_id, region):
             for league in result[str(summoner_id)]:
                 League.objects.create_or_update_league(league, region)
 
-            logger.debug('Got {} leagues for summoner ID {}'.format(
-                len(result[str(summoner_id)]), summoner_id))
+            logger.info('Got {} leagues for [{}] {}'.format(
+                len(result[str(summoner_id)]), region, summoner_id))
 
 @app.task(ignore_result=True)
 def store_get_match(result):
@@ -244,7 +244,7 @@ def store_get_match(result):
     if result != {}:
         created = MatchDetail.objects.create_match(result)
 
-        logger.debug('Got match {}'.format(created))
+        logger.info('Got match {}'.format(created))
 
 # Unused, see cache.wrapper.get_matches_from_ids
 # @app.task

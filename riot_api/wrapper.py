@@ -176,7 +176,7 @@ def get_matches_from_ids(result, region):
     saved = 0
 
     if 'matches' in result:
-        logger.info('{} matches in result'.format(len(result['matches'])))
+        logger.debug('{} matches in result'.format(len(result['matches'])))
 
         result_ids = set([match['matchId'] for match in result['matches']])
         known_ids = set(MatchDetail.objects.filter(match_id__in=result_ids)
