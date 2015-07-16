@@ -116,6 +116,7 @@ class Summoner(models.Model):
 
     class Meta:
         unique_together = ('summoner_id', 'region')
+        index_together = ('summoner_id', 'region')
 
     def __str__(self):
         return "[{}] {}".format(self.region, self.name)
