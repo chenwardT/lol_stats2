@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Also, using a single string containing a method name to control flow.
 
 class RiotAPI:
+    # TODO: Consolidate with get_summoners.
     @staticmethod
     def get_summoner(name=None, region=None):
         """
@@ -108,9 +109,11 @@ class RiotAPI:
                              link=store_get_league.s(summoner_ids, region))
 
     @staticmethod
-    def get_match(match_id, region=None, include_timeline=False):
+    def get_match(match_id, region=None, include_timeline=False, check=True):
         """
         Gets a single match, timeline data optionally included.
+
+        If `check` is True, the match won't be fetched if it is already stored.
 
         Note: Timeline data models not implemented.
         """
@@ -119,8 +122,11 @@ class RiotAPI:
                   'region': region,
                   'include_timeline': include_timeline}
 
-        if not MatchDetail.objects.filter(match_id=match_id,
-                                          region=region.upper()).exists():
+        if check and not MatchDetail.objects.filter(match_id=match_id,
+                                                    region=region.upper()).exists():
+            riot_api.apply_async((func, kwargs),
+                                 link=store_get_match.s())
+        else:
             riot_api.apply_async((func, kwargs),
                                  link=store_get_match.s())
 
@@ -167,11 +173,18 @@ def get_matches_from_ids(result, region):
     Note: Only works with matches of type 5x5, which are the only ones allowed
     by RiotAPI.get_match_history.
     """
-    if 'matches' in result:
-        logger.debug('{} matches in result'.format(len(result)))
+    saved = 0
 
-        for match in result['matches']:
-            if not MatchDetail.objects.filter(match_id=match['matchId'],
-                                              region=region.upper()).exists():
-                RiotAPI.get_match(match['matchId'], region=region,
-                                  include_timeline=False)
+    if 'matches' in result:
+        logger.info('{} matches in result'.format(len(result['matches'])))
+
+        result_ids = set([match['matchId'] for match in result['matches']])
+        known_ids = set(MatchDetail.objects.filter(match_id__in=result_ids)
+                        .values_list('match_id', flat=True))
+        ids_to_query = result_ids - known_ids
+
+        for id in ids_to_query:
+            RiotAPI.get_match(id, region, check=False)
+            saved += 1
+
+    logger.info('Got {} new matches'.format(saved))
