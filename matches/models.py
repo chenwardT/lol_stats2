@@ -291,7 +291,14 @@ class ParticipantTimeline(IterableDataFieldsMixin, models.Model):
     # xp_diff_per_min_deltas
     # xp_per_min_deltas
 
-    participant = models.ForeignKey(Participant)
+    # NOTE: db_index=True did NOT cause manage.py makemigrations to generate
+    # a migration to create this index, so it was created by hand:
+    #
+    # CREATE INDEX matches_participanttimeline_idx
+    #  ON matches_participanttimeline
+    #  USING btree
+    #  (participant_id);
+    participant = models.ForeignKey(Participant, db_index=True)
 
     objects = ParticipantTimelineManager()
 
