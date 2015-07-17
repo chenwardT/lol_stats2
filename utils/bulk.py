@@ -1,11 +1,17 @@
+from datetime import timedelta
+
 from django.db.models import Count
 
 from .functions import chunks
 from leagues.models import LeagueEntry
 from summoners.models import Summoner
 from riot_api.wrapper import RiotAPI
+from lol_stats2.celery import riot_api
 
 _MAX_SUMMONER_IDS_PER_QUERY = 40
+
+def remote_call_duration():
+    return float(riot_api.rate_limit[:-2]) ** -1
 
 def get_league_if_none(summoners=None):
     """
@@ -49,8 +55,9 @@ def get_summoners_from_league_entries(league_entries=None, region=None):
     Queries for chunks of summoners whose IDs are known via LeagueEntry records
     but are not stored in the Summoner table.
 
-    Accepts an iterable of LeagueEntry objects and a region.
-    Summoner queries are sent as chunks of at most 40 IDs.
+    Accepts a QuerySet for LeagueEntries from which to extract summoner IDs.
+    LeagueEntries are checked for individual players and not teams.
+    Summoner queries are sent in chunks of at most 40 IDs.
     """
 
     if league_entries is None:
@@ -60,25 +67,24 @@ def get_summoners_from_league_entries(league_entries=None, region=None):
     if region is None:
         raise ValueError('region must not be None.')
 
-    to_query = set()
+    known_summoner_ids = set(Summoner.objects.filter(region=region)
+                             .values_list('summoner_id', flat=True))
 
-    for le in league_entries:
-        if not Summoner.objects.filter(region=le.league.region,
-                                       summoner_id=le.player_or_team_id).exists():
-            to_query.add(le.player_or_team_id)
+    league_entry_ids = set(map(int, league_entries
+                               .exclude(player_or_team_id__contains='TEAM')
+                               .values_list('player_or_team_id', flat=True)))
 
-    query_list = []
-
-    for player in to_query:
-        query_list.append(player)
+    to_query = league_entry_ids - known_summoner_ids
 
     chunked = []
 
-    for chunk in chunks(query_list, _MAX_SUMMONER_IDS_PER_QUERY):
+    for chunk in chunks(list(to_query), _MAX_SUMMONER_IDS_PER_QUERY):
         chunked.append(chunk)
 
-    print("{} queries will be made to fetch {} summoners.".format(len(chunked),
-                                                                  len(query_list)))
+    eta = timedelta(seconds=remote_call_duration() * len(chunked))
+
+    print('{} queries will be made to fetch {} summoners.\n'
+          'This will take about {}.'.format(len(chunked), len(to_query), eta))
 
     response = input('Proceed? (y/[n])\n')
 
@@ -90,8 +96,7 @@ def get_summoners_from_league_entries(league_entries=None, region=None):
 def get_matches_for_summoners_without_history(summoners=None, region=None,
                                               threshold=1, num_matches=10,
                                               ranked_queues='RANKED_SOLO_5x5'):
-    match_count = \
-        summoners.annotate(match_cnt=Count('participantidentity'))
+    match_count = summoners.annotate(match_cnt=Count('participantidentity'))
 
     query_list = []
 
@@ -99,9 +104,11 @@ def get_matches_for_summoners_without_history(summoners=None, region=None,
         if summoner.match_cnt < threshold:
             query_list.append(summoner)
 
-    print("{} queries will be made to fetch {} matches for each of the "
-          "{} summoners.".format(len(query_list) * (num_matches + 1), num_matches,
-                                 len(query_list)))
+    eta = timedelta(seconds=remote_call_duration() * len(query_list))
+
+    print('{} queries will be made to fetch {} matches for each of the '
+          '{} summoners.\nThis will take about {}.'.format(
+        len(query_list) * (num_matches + 1), num_matches, len(query_list), eta))
 
     response = input('Proceed? (y/[n])\n')
 
