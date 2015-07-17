@@ -88,6 +88,11 @@ CELERY_ROUTES = {
     }
 }
 
+# This should be set in test virtualenv.
+# Causes all tasks to be executed locally by blocking until task returns.
+if 'CELERY_ALWAYS_EAGER' in os.environ:
+    CELERY_ALWAYS_EAGER = True
+
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
