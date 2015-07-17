@@ -2,6 +2,7 @@
 
 ##Setup
 
+###Virtual Environment
 Install virtualenvwrapper if not already present:
 
 [http://virtualenvwrapper.readthedocs.org/en/latest/install.html#basic-installation]
@@ -41,6 +42,19 @@ when starting up.
 You may also configure your SECRET_KEY and RIOT_API_KEY environment variables via 
 "postactivate" and "predeactivate" scripts.
 
+###Database Caveat
+
+Django does not create an index for the matches app's `ParticipantTimeline` model's
+`participant` field despite `db_index=True` being set.
+
+To account for this, the following will create the proper index in Postgres:
+ 
+     CREATE INDEX matches_participanttimeline_idx
+      ON matches_participanttimeline
+      USING btree
+      (participant_id);
+
+
 ##Celery
 
 Celery is configured to use a locally hosted AMQP broker with a Redis result backend.
@@ -54,6 +68,9 @@ Workers should be started independently due to an issue with celery multi:
 `celery -A lol_stats2 worker -l info -Q match_ids -n match_ids.%h`
 
 `celery -A lol_stats2 worker -l info -Q store -n store.%h`
+
+Alternatively, you may start (and restart!) workers via `workers.sh` but beware of
+`RuntimeError: Acquire on closed pool`, as it uses `celery multi`.
 
 The celery monitor is optional, and listens on port 5555 by default:
 
