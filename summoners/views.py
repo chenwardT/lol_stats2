@@ -1,15 +1,21 @@
 from django.shortcuts import render, redirect
 from rest_framework import viewsets
+from rest_framework.pagination import PageNumberPagination
 
 from .models import Summoner
 from .serializers import SummonerSerializer
 from .forms import SearchForm
 from cache.summoners import SingleSummoner
 
+class SummonerResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class SummonerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Summoner.objects.all()
     serializer_class = SummonerSerializer
+    pagination_class = SummonerResultsSetPagination
 
 
 def index(request):
