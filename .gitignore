@@ -8,3 +8,4 @@ static/
 htmlcov/
 .coverage
 *.pid
+log/
