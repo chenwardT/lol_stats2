@@ -18,6 +18,7 @@ from matches.models import MatchDetail
 
 logger = logging.getLogger(__name__)
 
+
 # TODO: Lots of repetition of strings here.
 # Consider putting all "store" methods in a class.
 # Also, using a single string containing a method name to control flow.
@@ -43,8 +44,8 @@ class RiotAPI:
         func = 'get_summoners'
         kwargs = {'names': names, 'ids': ids, 'region': region}
 
-        riot_api.apply_async((func, kwargs),
-                             link=store_get_summoners.s(region=region))
+        return riot_api.apply_async((func, kwargs),
+                                    link=store_get_summoners.s(region=region))
 
     @staticmethod
     def static_get_champion_list(region=None, locale=None, version=None,
@@ -56,8 +57,8 @@ class RiotAPI:
         kwargs = {'region': region, 'locale': locale, 'version': version,
                   'data_by_id': data_by_id, 'champ_data': champ_data}
 
-        riot_api.apply_async((func, kwargs),
-                             link=store_static_get_champion_list.s())
+        return riot_api.apply_async((func, kwargs),
+                                    link=store_static_get_champion_list.s())
 
     @staticmethod
     def static_get_summoner_spell_list(region=None, locale=None, version=None,
@@ -69,17 +70,17 @@ class RiotAPI:
         kwargs = {'region': region, 'locale': locale, 'version': version,
                   'data_by_id': data_by_id, 'spell_data': spell_data}
 
-        riot_api.apply_async((func, kwargs),
-                             link=store_static_get_summoner_spell_list.s())
+        return riot_api.apply_async((func, kwargs),
+                                    link=store_static_get_summoner_spell_list.s())
 
     @staticmethod
     def get_recent_games(summoner_id, region=None):
         func = 'get_recent_games'
         kwargs = {'summoner_id': summoner_id, 'region': region}
 
-        riot_api.apply_async((func, kwargs),
-                             link=store_get_recent_games.s(summoner_id=summoner_id,
-                                                           region=region))
+        return riot_api.apply_async((func, kwargs),
+                                    link=store_get_recent_games.s(summoner_id=summoner_id,
+                                                                  region=region))
 
     @staticmethod
     def get_challenger(region=None):
@@ -89,8 +90,8 @@ class RiotAPI:
         func = 'get_challenger'
         kwargs = {'region': region}
 
-        riot_api.apply_async((func, kwargs),
-                             link=store_get_challenger.s(region=region))
+        return riot_api.apply_async((func, kwargs),
+                                    link=store_get_challenger.s(region=region))
 
     @staticmethod
     def get_league(summoner_ids, region=None):
@@ -105,8 +106,8 @@ class RiotAPI:
         else:
             kwargs = {'summoner_ids': summoner_ids, 'region': region}
 
-        riot_api.apply_async((func, kwargs),
-                             link=store_get_league.s(summoner_ids, region))
+        return riot_api.apply_async((func, kwargs),
+                                    link=store_get_league.s(summoner_ids, region))
 
     @staticmethod
     def get_match(match_id, region=None, include_timeline=False, check=True):
@@ -124,11 +125,11 @@ class RiotAPI:
 
         if check and not MatchDetail.objects.filter(match_id=match_id,
                                                     region=region.upper()).exists():
-            riot_api.apply_async((func, kwargs),
-                                 link=store_get_match.s())
+            return riot_api.apply_async((func, kwargs),
+                                        link=store_get_match.s())
         else:
-            riot_api.apply_async((func, kwargs),
-                                 link=store_get_match.s())
+            return riot_api.apply_async((func, kwargs),
+                                        link=store_get_match.s())
 
     @staticmethod
     def get_match_history(summoner_id, region=None, champion_ids=None,
@@ -151,14 +152,15 @@ class RiotAPI:
 
         if ranked_queues not in _ALLOWED_QUEUES:
             logger.error('Unsupported value for "ranked_queues": {};'
-                             'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
-                             .format(ranked_queues))
+                         'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
+                         .format(ranked_queues))
             raise ValueError('Unsupported value for "ranked_queues": {};'
                              'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
                              .format(ranked_queues))
         else:
-            riot_api.apply_async((func, kwargs),
-                                 link=get_matches_from_ids.s(region))
+            return riot_api.apply_async((func, kwargs),
+                                        link=get_matches_from_ids.s(region))
+
 
 @app.task(ignore_result=True)
 def get_matches_from_ids(result, region):
