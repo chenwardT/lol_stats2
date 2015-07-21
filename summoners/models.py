@@ -80,6 +80,8 @@ class Summoner(models.Model):
     summoner_level = models.IntegerField(null=True, blank=True)
     region = models.CharField(max_length=4, db_index=True)
     last_update = models.DateTimeField(auto_now=True)
+    last_matches_update = models.DateTimeField(null=True, blank=True)
+    last_leagues_update = models.DateTimeField(null=True, blank=True)
 
     objects = SummonerManager()
 
