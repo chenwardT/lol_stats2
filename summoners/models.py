@@ -1,7 +1,9 @@
 import logging
 from datetime import timedelta
+from datetime import datetime
 
 from django.db import models, transaction
+from django.apps import apps
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +117,16 @@ class Summoner(models.Model):
                 return False
 
         return True
+
+    def most_recent_match_date(self):
+        match_model = apps.get_model('matches.MatchDetail')
+        match_date = match_model.objects\
+            .filter(participantidentity__summoner__id=self.id)\
+            .values_list('match_creation', flat=True)\
+            .order_by('-match_creation')\
+            .first()
+
+        return datetime.fromtimestamp(match_date/1000)
 
     class Meta:
         unique_together = ('summoner_id', 'region')
