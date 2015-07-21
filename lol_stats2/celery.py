@@ -138,8 +138,11 @@ def store_get_summoners(result, region):
             Summoner.objects.create_summoner(region, result[summoner_id])
             created += 1
 
-    logging.info('Got {} summoners, {} updated, {} created'.format(
-        updated + created, updated, created))
+    if updated == 0 and created == 0:
+        logger.warning('No summoners updated or created!')
+    else:
+        logging.info('Got {} summoners, {} updated, {} created'.format(
+            updated + created, updated, created))
 
 @app.task(ignore_result=True)
 def store_static_get_champion_list(result):
