@@ -224,14 +224,16 @@ def store_get_league(result, summoner_id, region):
     summoner's league's entries if it was known.
     """
     # TODO: Fix IntegrityError, duplicate player_or_team_id + league_id.
+
     # Empty dict means that the queried summoner is not in a league.
     if result != {}:
-        for summoner_id in result:
-            for league in result[str(summoner_id)]:
+        for id in result:
+            logger.debug('Reading leagues for summoner ID {}'.format(id))
+            for league in result[id]:
                 League.objects.create_or_update_league(league, region)
 
             logger.info('Got {} leagues for [{}] {}'.format(
-                len(result[str(summoner_id)]), region, summoner_id))
+                len(result[id]), region, id))
 
 @app.task(ignore_result=True)
 def store_get_match(result):
