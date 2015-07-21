@@ -1,6 +1,10 @@
 import logging
+from datetime import datetime
 
+import pytz
 from django.db import models
+
+from summoners.models import Summoner
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +59,13 @@ class LeagueEntryManager(models.Manager):
     def create_entry(self, attrs):
         """
         Create an entry from a dict of format LeagueEntry DTO.
+
+        If the Summoner that this entry refers to is in the database,
+        their last_leagues_update field will be updated.
+
+        While Summoners may belong to multiple leagues, and this only refers
+        to a single league's entry, all leagues are fetched simultaneously,
+        so this is a safe way to trigger updates on last_leagues_update.
         """
         if 'miniSeries' in attrs:
             entry = self.create(division=attrs['division'],
@@ -82,6 +93,22 @@ class LeagueEntryManager(models.Manager):
                                 player_or_team_name=attrs['playerOrTeamName'],
                                 wins=attrs['wins'],
                                 losses=attrs['losses'])
+
+        # If this entry isn't for a team, then update the Summoner's
+        # last_leagues_update field.
+
+        # TODO: To ensure the Summoner's last_leagues_update field is not written to
+        # multiple times in a short period of time (e.g. when the summoner is in
+        # multiple leagues) a time distance check may be performed.
+        if 'TEAM' not in attrs['playerOrTeamId']:
+            summoner_query = Summoner.objects.filter(
+                region=entry.league.region,
+                summoner_id=int(attrs['playerOrTeamId']))
+
+            if summoner_query.exists():
+                summoner_query.update(last_leagues_update=datetime.now(tz=pytz.utc))
+                logger.debug('updated last_leagues_update for {}'
+                             .format(summoner_query.get()))
 
         logger.debug(entry)
 
