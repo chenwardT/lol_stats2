@@ -3,6 +3,9 @@ A wrapper for for the Celery task that uses the RiotWatcher instance.
 """
 
 import logging
+from datetime import datetime
+
+import pytz
 
 from lol_stats2.celery import (app,
                                riot_api,
@@ -15,6 +18,7 @@ from lol_stats2.celery import (app,
                                store_get_league,
                                store_get_match)
 from matches.models import MatchDetail
+from summoners.models import Summoner
 
 logger = logging.getLogger(__name__)
 
@@ -98,13 +102,37 @@ class RiotAPI:
         """
         Gets and stores leagues for the given summoner IDs in the given
         region.
+
+        Also updates any extant related summoners' last_leagues_update
+        fields to now.
         """
         func = 'get_league'
 
         if isinstance(summoner_ids, int):
             kwargs = {'summoner_ids': [summoner_ids], 'region': region}
+
+            summoner_query = Summoner.objects.filter(summoner_id=summoner_ids,
+                                                     region=region)
+            if summoner_query.exists():
+                now = datetime.now(tz=pytz.utc)
+                summoner = summoner_query.get()
+                summoner.last_leagues_update = now
+                summoner.save()
+                logger.info('Set {} last_leagues_update to now: {}'
+                            .format(summoner, now))
         else:
             kwargs = {'summoner_ids': summoner_ids, 'region': region}
+
+            for id in summoner_ids:
+                summoner_query = Summoner.objects.filter(summoner_id=id,
+                                                         region=region)
+                if summoner_query.exists():
+                    now = datetime.now(tz=pytz.utc)
+                    summoner = summoner_query.get()
+                    summoner.last_leagues_update = now
+                    summoner.save()
+                    logger.info('Set {} last_leagues_update to now: {}'
+                                .format(summoner, now))
 
         return riot_api.apply_async((func, kwargs),
                                     link=store_get_league.s(summoner_ids, region))
@@ -140,6 +168,9 @@ class RiotAPI:
 
         Used to get a list of match IDs to feed into get_match,
         via get_matches_from_ids.
+
+        Also updates any extant related summoners' last_matches_update
+        fields to now.
         """
         _ALLOWED_QUEUES = ('RANKED_SOLO_5x5', 'RANKED_TEAM_5x5')
         func = 'get_match_history'
@@ -158,6 +189,23 @@ class RiotAPI:
                              'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
                              .format(ranked_queues))
         else:
+            summoner_query = Summoner.objects.filter(region=region,
+                                                     summoner_id=summoner_id)
+
+            # TODO: This may be misleading, as the time of the actual
+            # get_matches_from_ids or get_match calls don't necessarily
+            # occur immediately after this executes, e.g. when queues
+            # are backed up.
+            # Possible solution: pass summoner ID through to
+            # get_matches_from_ids and update last_matches_update field there.
+            if summoner_query.exists():
+                now = datetime.now(tz=pytz.utc)
+                summoner = summoner_query.get()
+                summoner.last_matches_update = now
+                summoner.save()
+                logger.info('Set {} last_matches_update to now: {}'
+                            .format(summoner, now))
+
             return riot_api.apply_async((func, kwargs),
                                         link=get_matches_from_ids.s(region))
 
