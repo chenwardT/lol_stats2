@@ -3,7 +3,7 @@ Ensures Summoner pages contain up-to-date data.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 import pytz
@@ -26,6 +26,10 @@ class SingleSummoner:
     """
     _ALLOWED_REGIONS = ('BR', 'EUNE', 'EUW', 'KR', 'LAN', 'LAS', 'NA', 'OCE',
                         'TR', 'RU')
+    _SUMMONER_UPDATE_INTERVAL = timedelta(minutes=15)
+    _MATCH_HISTORY_UPDATE_INTERVAL = timedelta(minutes=15)
+    _LAST_MATCH_TIME_THRESHOLD = timedelta(minutes=15)
+    _LEAGUE_UPDATE_INTERVAL = timedelta(minutes=15)
 
     # TODO: Can we combine error logging and exception raising?
     def __init__(self, std_name=None, summoner_id=None, region=None):
@@ -74,6 +78,12 @@ class SingleSummoner:
         logger.debug('Summoner init complete, {}'.format(self.get_instance()))
 
     def is_known(self):
+        """
+        Checks for the existence of the summoner in the database.
+
+        Checks by summoner ID if a summoner ID was passed to __init__, otherwise
+        uses the standardized name.
+        """
         if self.summoner_id:
             return Summoner.objects.filter(summoner_id=self.summoner_id,
                                            region=self.region).exists()
@@ -117,18 +127,65 @@ class SingleSummoner:
     def get_league(self):
         RiotAPI.get_league(self.summoner.summoner_id, self.summoner.region)
 
-    # TODO: Consider calling self.summoner.refresh_from_db().
-    def is_cache_fresh(self):
+    # # TODO: Consider calling self.summoner.refresh_from_db().
+    # def is_cache_fresh(self):
+    #     """
+    #     Returns True if this summoner's data is in the DB and the entry is fresh,
+    #     otherwise False.
+    #     """
+    #     # TODO: Iterate over a list of models that we depend on, checking
+    #     # each model instance's last_update and comparing it to its cache life.
+    #     # Alternatively, check caches for each model instead of everything we depend
+    #     # on to further more granular cache refreshing.
+    #     #
+    #     # return datetime.now(tz=pytz.utc) < (self.get_instance().last_update
+    #     #                                     + Summoner.CACHE_DURATION)
+
+    def is_matches_fresh(self):
         """
-        Returns True if this summoner's data is in the DB and the entry is fresh,
-        otherwise False.
+        Returns True if either is true:
+
+        1) This summoner's most recent match's creation datetime is within a time
+           distance specified by _LAST_MATCH_TIME_THRESHOLD of now.
+
+        2) The summoner's last_matches_update is within a time distance specified
+           by _MATCH_HISTORY_UPDATE_INTERVAL of now.
+
+        Otherwise returns False.
+
+        If any of the checked fields are missing (None), then their respective
+        clauses are considered False.
         """
-        # TODO: Iterate over a list of models that we depend on, checking
-        # each model instance's last_update and comparing it to it's cache life.
-        # Alternatively, check caches for each model instead of everything we depend
-        # on to further more granular cache refreshing.
-        return datetime.now(tz=pytz.utc) < (self.get_instance().last_update
-                                            + Summoner.CACHE_DURATION)
+        if self.summoner.most_recent_match_date() and self.summoner.last_matches_update:
+            time_since_match = datetime.now(tz=pytz.utc) - self.summoner.most_recent_match_date()
+            time_since_update = datetime.now(tz=pytz.utc) - self.summoner.last_matches_update
+
+            return time_since_match < self._LAST_MATCH_TIME_THRESHOLD or \
+                   time_since_update < self._MATCH_HISTORY_UPDATE_INTERVAL
+        elif self.summoner.most_recent_match_date():
+            time_since_match = datetime.now(tz=pytz.utc) - self.summoner.most_recent_match_date()
+
+            return time_since_match < self._LAST_MATCH_TIME_THRESHOLD
+        elif self.summoner.last_matches_update:
+            time_since_update = datetime.now(tz=pytz.utc) - self.summoner.last_matches_update
+
+            return time_since_update < self._MATCH_HISTORY_UPDATE_INTERVAL
+        else:
+            return False
+
+    def is_leagues_fresh(self):
+        """
+        Returns True if the summoner's last_leagues_update is within a time
+        distance of _LEAGUE_UPDATE_INTERVAL from now, otherwise False.
+
+        If the summoner's last_leagues_update field is None, then returns False.
+        """
+        if self.summoner.last_leagues_update:
+            time_since_leagues = datetime.now(tz=pytz.utc) - self.summoner.last_leagues_update
+
+            return time_since_leagues < self._LEAGUE_UPDATE_INTERVAL
+        else:
+            return False
 
     def full_query(self):
         """
