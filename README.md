@@ -69,8 +69,8 @@ Workers should be started independently due to an issue with celery multi:
 
 `celery -A lol_stats2 worker -l info -Q store -n store.%h`
 
-Alternatively, you may start (and restart!) workers via `workers.sh` but beware of
-`RuntimeError: Acquire on closed pool`, as it uses `celery multi`.
+Alternatively, you may start (and restart!) workers via `workers_restart.sh` but
+beware of `RuntimeError: Acquire on closed pool`, as it uses `celery multi`.
 
 The celery monitor is optional, and listens on port 5555 by default:
 
