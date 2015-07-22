@@ -1,7 +1,7 @@
 import logging
-from datetime import timedelta
-from datetime import datetime
+from datetime import timedelta, datetime
 
+import pytz
 from django.db import models, transaction
 from django.apps import apps
 
@@ -126,7 +126,10 @@ class Summoner(models.Model):
             .order_by('-match_creation')\
             .first()
 
-        return datetime.fromtimestamp(match_date/1000)
+        if match_date:
+            return datetime.fromtimestamp(match_date/1000,tz=pytz.utc)
+        else:
+            return None
 
     class Meta:
         unique_together = ('summoner_id', 'region')
