@@ -1,5 +1,32 @@
 #lol_stats2
 
+> "There is an epidemic failure within the game to understand what is really happening"
+> 
+> --Peter Brand (Jonah Hill), "Moneyball"
+
+lol_stats2 is a website that aims to provide unique insight into the competitive
+multiplayer game [League of Legends](http://leagueoflegends.com), developed by Riot Games.
+Through querying the official [League of Legends API](http://developer.riotgames.com/)
+it accesses match, player, and team data with the aim of finding patterns and making
+distinctions that may not be apparent to players/spectators of the game.
+
+##Background
+The site is built on `Django`, a Python web framework.
+
+API access is provided by [`RiotWatcher`](https://github.com/pseudonym117/Riot-Watcher).
+
+Asynchronous jobs, such as fetching and analyzing data, is performed by `Celery`,
+a distributed task queue. It is uses `RabbitMQ` as its broker and `Redis` as a result
+store.
+        
+Stored data is exposed via [`Django-Rest-Framework`](http://www.django-rest-framework.org/)
+with plans for consumption via a JS frontend.
+
+Analytical techniques to follow once functionality regarding retrieval, storage, and 
+processing of data is solidified.
+
+This project and its author are not affiliated with Riot Games.
+
 ##Setup
 
 ###Virtual Environment
@@ -59,9 +86,11 @@ To account for this, the following will create the proper index in Postgres:
 
 Celery is configured to use a locally hosted AMQP broker with a Redis result backend.
 A single topic-type exchange, 'default', is configured to route messages to one of
-3 queues. See settings/base.py for details.
+3 queues. This is likely to change as development progresses. See settings/base.py
+for details.
 
-Workers should be started independently due to an issue with celery multi:
+Workers may be started independently due to an [issue](https://github.com/celery/celery/issues/1839)
+with celery multi:
 
 `celery -A lol_stats2 worker -l info -Q default -n default.%h`
 
