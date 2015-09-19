@@ -15,7 +15,7 @@ The site is built on `Django`, a Python web framework.
 
 API access is provided by [`RiotWatcher`](https://github.com/pseudonym117/Riot-Watcher).
 
-Asynchronous jobs, such as fetching and analyzing data, is performed by `Celery`,
+Asynchronous jobs, such as fetching and analyzing data, are performed by `Celery`,
 a distributed task queue. It is uses `RabbitMQ` as its broker and `Redis` as a result
 store.
         
