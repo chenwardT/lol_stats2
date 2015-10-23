@@ -10,6 +10,9 @@ from lol_stats2.celery import riot_api
 
 _MAX_SUMMONER_IDS_PER_QUERY = 40
 
+# TODO: re: functions that interact w/riot API and "fill in the blanks":
+# Standardize accepted params where possible.
+
 def remote_call_duration():
     return float(riot_api.rate_limit[:-2]) ** -1
 

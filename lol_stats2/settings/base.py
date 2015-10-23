@@ -207,6 +207,7 @@ DATABASES = {
 
 LANGUAGE_CODE = 'en-us'
 
+# TODO: Consider TZ agnostic and assume GMT.
 # DateTimeFields on models store timezone offset!
 # ex. 2015-05-11 20:42:10.712697-04
 TIME_ZONE = 'America/New_York'

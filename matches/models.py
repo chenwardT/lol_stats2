@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 # TODO: Finish create_ methods for models related to timeline data.
 # See `include_timeline` arg of RiotWatcher.get_match().
 
+
 class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
     def create_match(self, attrs):
         match = None
@@ -49,6 +50,7 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
         logging.info('Created match: {} {}'.format(attrs['region'],
                                                    attrs['matchId']))
         return match
+
 
 class MatchDetail(IterableDataFieldsMixin, models.Model):
     map_id = models.IntegerField()                      # ex. 11
@@ -74,6 +76,7 @@ class MatchDetail(IterableDataFieldsMixin, models.Model):
     class Meta:
         unique_together = ('match_id', 'region')
 
+
 class ParticipantManager(ParticipantFromAttrsMixin, models.Manager):
     def create_participant(self, attrs):
         participant = self.create(**self.init_dict(attrs))
@@ -90,6 +93,7 @@ class ParticipantManager(ParticipantFromAttrsMixin, models.Manager):
 
         return participant
 
+
 class Participant(IterableDataFieldsMixin, models.Model):
     champion_id = models.IntegerField()
     highest_achieved_season_tier = models.CharField(max_length=16, null=True, blank=True)
@@ -101,7 +105,7 @@ class Participant(IterableDataFieldsMixin, models.Model):
     # Originally in ParticipantStats.
     assists = models.IntegerField(null=True, blank=True)
     champ_level = models.IntegerField()
-    #combat_player_score
+    # combat_player_score
     deaths = models.IntegerField(null=True, blank=True)
     double_kills = models.IntegerField(null=True, blank=True)
     first_blood_assist = models.BooleanField()
@@ -171,6 +175,7 @@ class Participant(IterableDataFieldsMixin, models.Model):
         return '{} on team {}'.format(Champion.objects.get(champion_id=self.champion_id),
                                       self.team_id)
 
+
 class ParticipantIdentityManager(CreateableFromAttrsMixin, models.Manager):
     def create_participant_identity(self, attrs):
         participant_identity = self.create(**self.init_dict(attrs))
@@ -183,6 +188,7 @@ class ParticipantIdentityManager(CreateableFromAttrsMixin, models.Manager):
 
         return participant_identity
 
+
 class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
     participant_id = models.IntegerField()
 
@@ -194,6 +200,7 @@ class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
     def __str__(self):
         return 'Participant ID {} in {}'.format(self.participant_id, self.match_detail)
 
+
 class TeamManager(CreateableFromAttrsMixin, models.Manager):
     def create_team(self, attrs):
         team = self.create(**self.init_dict(attrs))
@@ -204,9 +211,10 @@ class TeamManager(CreateableFromAttrsMixin, models.Manager):
 
         return team
 
+
 class Team(IterableDataFieldsMixin, models.Model):
     baron_kills = models.IntegerField(null=True, blank=True)
-    #dominion_victory_score
+    # dominion_victory_score
     dragon_kills = models.IntegerField(null=True, blank=True)
     first_baron = models.BooleanField()
     first_blood = models.BooleanField()
@@ -232,6 +240,7 @@ class Team(IterableDataFieldsMixin, models.Model):
         else:
             return 'Purple'
 
+
 # timeline data
 class Timeline(IterableDataFieldsMixin, models.Model):
     frame_interval = models.BigIntegerField()
@@ -239,11 +248,13 @@ class Timeline(IterableDataFieldsMixin, models.Model):
 
     match_detail = models.OneToOneField(MatchDetail)
 
+
 class MasteryManager(CreateableFromAttrsMixin, models.Manager):
     def create_mastery(self, attrs):
         mastery = self.create(**self.init_dict(attrs))
 
         return mastery
+
 
 class Mastery(IterableDataFieldsMixin, models.Model):
     mastery_id = models.BigIntegerField()
@@ -255,11 +266,13 @@ class Mastery(IterableDataFieldsMixin, models.Model):
 
 # TODO: Check above all previous fields for BigInt -> Int.
 
+
 class ParticipantTimelineManager(CreateableFromAttrsMixin, models.Manager):
     def create_participant_timeline(self, attrs):
         participant_timeline = self.create(**self.init_dict(attrs))
 
         return participant_timeline
+
 
 class ParticipantTimeline(IterableDataFieldsMixin, models.Model):
     # ParticipantTimelineData types to be added later.
@@ -302,11 +315,13 @@ class ParticipantTimeline(IterableDataFieldsMixin, models.Model):
 
     objects = ParticipantTimelineManager()
 
+
 class RuneManager(CreateableFromAttrsMixin, models.Manager):
     def create_rune(self, attrs):
         rune = self.create(**self.init_dict(attrs))
 
         return rune
+
 
 class Rune(IterableDataFieldsMixin, models.Model):
     rank = models.IntegerField()
@@ -319,11 +334,13 @@ class Rune(IterableDataFieldsMixin, models.Model):
     def __str__(self):
         return "Rune of {}: {} ({})".format(self.participant, self.rune_id, self.rank)
 
+
 class BannedChampionManager(CreateableFromAttrsMixin, models.Manager):
     def create_banned_champion(self, attrs):
         banned_champion = self.create(**self.init_dict(attrs))
 
         return banned_champion
+
 
 class BannedChampion(IterableDataFieldsMixin, models.Model):
     champion_id = models.IntegerField()
@@ -335,6 +352,7 @@ class BannedChampion(IterableDataFieldsMixin, models.Model):
 
     def __str__(self):
         return "{} team's ban {}: {}".format(self.team.color(), self.pick_turn, self.champion_id)
+
 
 # timeline data
 class Frame(IterableDataFieldsMixin, models.Model):
@@ -350,6 +368,7 @@ class Frame(IterableDataFieldsMixin, models.Model):
 #     thirty_to_end = models.FloatField(null=True, blank=True)
 #     twenty_to_thirty = models.FloatField(null=True, blank=True)
 #     zero_to_ten = models.FloatField(null=True, blank=True)
+
 
 # timeline data
 class Event(IterableDataFieldsMixin, models.Model):
@@ -377,6 +396,7 @@ class Event(IterableDataFieldsMixin, models.Model):
 
     frame = models.ForeignKey(Frame)
 
+
 # timeline data
 class ParticipantFrame(IterableDataFieldsMixin, models.Model):
     current_gold = models.IntegerField()
@@ -389,6 +409,7 @@ class ParticipantFrame(IterableDataFieldsMixin, models.Model):
     team_score = models.IntegerField()
     total_gold = models.IntegerField()
     xp = models.IntegerField()
+
 
 # timeline data
 class Position(IterableDataFieldsMixin, models.Model):

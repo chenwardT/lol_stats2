@@ -3,8 +3,9 @@ Management class for champion data retrieval.
 """
 
 import logging
-import pytz
 from datetime import datetime
+
+import pytz
 
 from champions.models import Champion
 from riot_api.wrapper import RiotAPI
