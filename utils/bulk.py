@@ -10,11 +10,14 @@ from lol_stats2.celery import riot_api
 
 _MAX_SUMMONER_IDS_PER_QUERY = 40
 
+
 # TODO: re: functions that interact w/riot API and "fill in the blanks":
 # Standardize accepted params where possible.
 
+
 def remote_call_duration():
     return float(riot_api.rate_limit[:-2]) ** -1
+
 
 def get_league_if_none(summoners=None):
     """
@@ -44,14 +47,15 @@ def get_league_if_none(summoners=None):
     for chunk in chunks(query_list, 10):
         chunked.append(chunk)
 
-    print("{} queries will be made to fetch {} summoners' leagues.".format(len(chunked),
-                                                                          len(query_list)))
+    print("{} queries will be made to fetch {} summoners' leagues."
+          .format(len(chunked), len(query_list)))
 
     response = input('Proceed? (y/[n])\n')
 
     if response == 'y':
         for group in chunked:
             RiotAPI.get_league(group, region)
+
 
 def get_summoners_from_league_entries(league_entries=None, region=None):
     """
@@ -95,6 +99,7 @@ def get_summoners_from_league_entries(league_entries=None, region=None):
         for group in chunked:
             RiotAPI.get_summoners(ids=group, region=region)
 
+
 # TODO: Allow for list of summoner objects to be passed in.
 def get_matches_for_summoners_without_history(summoners=None, region=None,
                                               threshold=1, num_matches=10,
@@ -107,12 +112,12 @@ def get_matches_for_summoners_without_history(summoners=None, region=None,
         if summoner.match_cnt < threshold:
             query_list.append(summoner)
 
-    eta = timedelta(seconds=remote_call_duration() * len(query_list)
-                            * (num_matches + 1))
+    eta = timedelta(seconds=remote_call_duration() * len(query_list) *
+                    (num_matches + 1))
 
     print('{} queries will be made to fetch {} matches for each of the '
-          '{} summoners.\nThis will take about {}.'.format(
-        len(query_list) * (num_matches + 1), num_matches, len(query_list), eta))
+          '{} summoners.\nThis will take about {}.'
+          .format(len(query_list) * (num_matches + 1), num_matches, len(query_list), eta))
 
     response = input('Proceed? (y/[n])\n')
 
@@ -120,6 +125,7 @@ def get_matches_for_summoners_without_history(summoners=None, region=None,
         for summoner in query_list:
             RiotAPI.get_match_history(summoner.summoner_id, region,
                                       ranked_queues=ranked_queues, end_index=num_matches)
+
 
 def update_summoners(summoners=None, region=None):
     """
@@ -136,13 +142,14 @@ def update_summoners(summoners=None, region=None):
         query_list.append(chunk)
 
     print("{} queries will be made to update {} summoners.".format(len(query_list),
-                                                                  len(ids)))
+                                                                   len(ids)))
 
     response = input('Proceed? (y/[n])\n')
 
     if response == 'y':
         for group in query_list:
             RiotAPI.get_summoners(ids=group, region=region)
+
 
 def get_matches_for_leagues(leagues=None, region=None,
                             ranked_queues='RANKED_SOLO_5x5', num_matches=10):
@@ -189,6 +196,22 @@ def get_matches_for_leagues(leagues=None, region=None,
     response = input('Proceed? (y/[n])\n')
 
     if response == 'y':
-        for id in known_summoners:
-            RiotAPI.get_match_history(id, region, ranked_queues=ranked_queues,
+        for summoner_id in known_summoners:
+            RiotAPI.get_match_history(summoner_id, region, ranked_queues=ranked_queues,
                                       end_index=num_matches)
+
+
+def get_leagues_for_summoner_ids(ids=None, region=None):
+    chunked_ids = list(chunks(ids, 10))
+
+    eta = timedelta(seconds=remote_call_duration() * len(chunked_ids))
+
+    print('{} queries will be made to fetch {} summoners\' leagues.\n'
+          'This will take about {}.'
+          .format(len(chunked_ids), len(ids), eta))
+
+    response = input('Proceed? (y/[n])\n')
+
+    if response == 'y':
+        for chunk in chunked_ids:
+            RiotAPI.get_league(summoner_ids=chunk, region=region)
