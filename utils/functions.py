@@ -1,11 +1,15 @@
 import inflection
 
+from celery.result import AsyncResult
+
+
 def chunks(l, n):
     """
     Yield successive n-sized chunks from l.
     """
     for i in range(0, len(l), n):
         yield l[i:i+n]
+
 
 # TODO: Compare speed to try/except KeyError block.
 def get_val_or_none(dct, key):
@@ -22,6 +26,7 @@ def get_val_or_none(dct, key):
     else:
         return None
 
+
 def non_dict_or_list_keys(dct):
     """
     Yields keys of dct whose associated values are not of type list or dict.
@@ -29,6 +34,7 @@ def non_dict_or_list_keys(dct):
     for k in dct:
         if not isinstance(dct[k], list) and not isinstance(dct[k], dict):
             yield k
+
 
 def underscore_dict(dct):
     """
@@ -40,3 +46,16 @@ def underscore_dict(dct):
         under_dict[inflection.underscore(k)] = dct[k]
 
     return under_dict
+
+
+def multi_task_status(task_ids):
+    """
+    Returns True if and only if all task states are 'SUCCESS', otherwise False.
+    """
+    all_success = True
+
+    for task_id in task_ids:
+        if AsyncResult(task_id).state != 'SUCCESS':
+            all_success = False
+
+    return all_success
