@@ -22,7 +22,6 @@ from summoners.models import Summoner
 
 logger = logging.getLogger(__name__)
 
-
 # TODO: Lots of repetition of strings here.
 # Consider putting all "store" methods in a class.
 # Also, using a single string containing a method name to control flow.
@@ -159,6 +158,7 @@ class RiotAPI:
             return riot_api.apply_async((func, kwargs),
                                         link=store_get_match.s())
 
+    # ENDPOINT REMOVED
     @staticmethod
     def get_match_history(summoner_id, region=None, champion_ids=None,
                           ranked_queues='RANKED_SOLO_5x5', begin_index=None,
@@ -182,6 +182,75 @@ class RiotAPI:
                   'end_index': end_index}
 
         if ranked_queues not in _ALLOWED_QUEUES:
+            logger.error('Unsupported value for "ranked_queues": {};'
+                         'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
+                         .format(ranked_queues))
+            raise ValueError('Unsupported value for "ranked_queues": {};'
+                             'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
+                             .format(ranked_queues))
+        else:
+            summoner_query = Summoner.objects.filter(region=region,
+                                                     summoner_id=summoner_id)
+
+            # TODO: This may be misleading, as the time of the actual
+            # get_matches_from_ids or get_match calls don't necessarily
+            # occur immediately after this executes, e.g. when queues
+            # are backed up.
+            # Possible solution: pass summoner ID through to
+            # get_matches_from_ids and update last_matches_update field there.
+            if summoner_query.exists():
+                now = datetime.now(tz=pytz.utc)
+                summoner = summoner_query.get()
+                summoner.last_matches_update = now
+                summoner.save()
+                logger.info('Set {} last_matches_update to now: {}'
+                            .format(summoner, now))
+
+            return riot_api.apply_async((func, kwargs),
+                                        link=get_matches_from_ids.s(region))
+
+    # TODO: There is no upper limit on the number of match IDs that can be
+    # retrieved now, so we need to consider how to handle large amounts of
+    # "new" matches being found. This can occur if a summoner doesn't get
+    # refreshed for a long time (during which they participate in many matches).
+    #
+    # This issue can also be (better?) handled in get_matches_from_ids,
+    # where we can just get, e.g. the 10 most recent matches that are not already
+    # in the DB.
+    #
+    # Something more complex may be required for intuitive behavior to the user.
+    # For example, if more than 10 matches were played *since last time we fetched*,
+    # then just get the most recent 10.
+    #
+    # This stands in contrast to us getting 5 matches from before the presently known
+    # matches and that occurred since the last fetch (what are the odds of this case?)
+    @staticmethod
+    def get_match_list(summoner_id, region=None, champion_ids=None, ranked_queues=None,
+                       seasons=None, begin_time=None, end_time=None, begin_index=None,
+                       end_index=None):
+        """
+        Gets all matches that satisfy the filters (args).
+
+        Used to get a list of match IDs to feed into get_match,
+        via get_matches_from_ids.
+
+        Also updates any extant related summoners' last_matches_update
+        fields to now.
+        """
+        _ALLOWED_QUEUES = ('RANKED_SOLO_5x5', 'RANKED_TEAM_5x5')
+        func = 'get_match_list'
+        kwargs = {'summoner_id': summoner_id,
+                  'region': region,
+                  'champion_ids': champion_ids,
+                  'ranked_queues': ranked_queues,
+                  'seasons': seasons,
+                  'begin_time': begin_time,
+                  'end_time': end_time,
+                  'begin_index': begin_index,
+                  'end_index': end_index}
+
+        if ranked_queues not in _ALLOWED_QUEUES:
+            # TODO: Factor out these msgs.
             logger.error('Unsupported value for "ranked_queues": {};'
                          'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
                          .format(ranked_queues))
@@ -233,6 +302,8 @@ def get_matches_from_ids(result, region):
                         .values_list('match_id', flat=True))
         ids_to_query = result_ids - known_ids
 
+        # Use check=False b/c we just checked that these match IDs
+        # aren't known.
         for id in ids_to_query:
             RiotAPI.get_match(id, region, check=False)
             saved += 1
