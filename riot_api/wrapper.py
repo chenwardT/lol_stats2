@@ -225,7 +225,7 @@ class RiotAPI:
     # This stands in contrast to us getting 5 matches from before the presently known
     # matches and that occurred since the last fetch (what are the odds of this case?)
     @staticmethod
-    def get_match_list(summoner_id, region=None, champion_ids=None, ranked_queues=None,
+    def get_match_list(summoner_id, region=None, champion_ids=None, ranked_queues='RANKED_SOLO_5x5',
                        seasons=None, begin_time=None, end_time=None, begin_index=None,
                        end_index=None):
         """
