@@ -1,12 +1,13 @@
 from datetime import timedelta
 
 from django.db.models import Count
+from celery import chain
 
 from .functions import chunks
 from leagues.models import LeagueEntry
 from summoners.models import Summoner
 from riot_api.wrapper import RiotAPI
-from lol_stats2.celery import riot_api
+from lol_stats2.celery import riot_api, store_get_summoners, store_get_league
 
 _MAX_SUMMONER_IDS_PER_QUERY = 40
 
@@ -54,7 +55,9 @@ def get_league_if_none(summoners=None):
 
     if response == 'y':
         for group in chunked:
-            RiotAPI.get_league(group, region)
+            chain(RiotAPI.get_league(group, region),
+                  riot_api.s(),
+                  store_get_league.s(region=region))()
 
 
 def get_summoners_from_league_entries(league_entries=None, region=None):
@@ -97,7 +100,9 @@ def get_summoners_from_league_entries(league_entries=None, region=None):
 
     if response == 'y':
         for group in chunked:
-            RiotAPI.get_summoners(ids=group, region=region)
+            chain(RiotAPI.get_summoners(ids=group, region=region),
+                  riot_api.s(),
+                  store_get_summoners.s(region=region))()
 
 
 # TODO: Allow for list of summoner objects to be passed in.
@@ -148,7 +153,9 @@ def update_summoners(summoners=None, region=None):
 
     if response == 'y':
         for group in query_list:
-            RiotAPI.get_summoners(ids=group, region=region)
+            chain(RiotAPI.get_summoners(ids=group, region=region),
+                  riot_api.s(),
+                  store_get_summoners.s(region=region))()
 
 
 def get_matches_for_leagues(leagues=None, region=None,
@@ -184,7 +191,9 @@ def get_matches_for_leagues(leagues=None, region=None,
 
     if response == 'y':
         for group in summoner_query_list:
-            RiotAPI.get_summoners(ids=group, region=region)
+            chain(RiotAPI.get_summoners(ids=group, region=region),
+                  riot_api.s(),
+                  store_get_summoners.s(region=region))()
 
     known_summoners.extend(unknown_summoners)
 
@@ -214,4 +223,6 @@ def get_leagues_for_summoner_ids(ids=None, region=None):
 
     if response == 'y':
         for chunk in chunked_ids:
-            RiotAPI.get_league(summoner_ids=chunk, region=region)
+            chain(RiotAPI.get_league(summoner_ids=chunk, region=region),
+                  riot_api.s(),
+                  store_get_league.s(region=region))()
