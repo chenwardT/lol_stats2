@@ -3,14 +3,14 @@ Management class for champion data retrieval.
 """
 
 import logging
-from datetime import datetime
 
-import pytz
+from celery import chain
 
-from champions.models import Champion
 from riot_api.wrapper import RiotAPI
+from lol_stats2.celery import riot_api, store_static_get_champion_list
 
 logger = logging.getLogger(__name__)
+
 
 # TODO: Consider applications for args of these RiotWatcher methods.
 class ChampionManager:
@@ -22,4 +22,6 @@ class ChampionManager:
     @staticmethod
     def get_all():
         logger.debug()
-        RiotAPI.static_get_champion_list()
+        chain(RiotAPI.static_get_champion_list(),
+              riot_api.s(),
+              store_static_get_champion_list.s())()
