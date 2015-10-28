@@ -8,11 +8,12 @@ import time
 
 import pytz
 from django.db import transaction
+from celery import chord, group, chain
 
 from summoners.models import Summoner
 from leagues.models import LeagueEntry
 from riot_api.wrapper import RiotAPI
-from lol_stats2.celery import app, riot_api, store_get_summoner
+from lol_stats2.celery import app, riot_api, store_get_summoner, store_get_league, store_get_summoners
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,9 @@ class SingleSummoner:
         # If the summoner isn't already known, the first time we get it
         # will be via name, meaning we have a std_name to work with.
         if not self.is_known():
-            task = RiotAPI.get_summoner(self.std_name, self.region)
+            task = chain(RiotAPI.get_summoner(self.std_name, self.region),
+                         riot_api.s(),
+                         store_get_summoner.s(region=self.region))()
 
             # TODO: When invoked by ajax, must expose task ID to frontend
             # so data fetching progress can be seen/acted upon, also
@@ -66,6 +69,8 @@ class SingleSummoner:
 
             # Wait until result is stored.
 
+            # TODO: Cleanup; use the chain methods we now have access to.
+            # DEBUG
             while task.children is None:
                 print('.', end='',flush=True)
                 time.sleep(.1)
@@ -74,6 +79,7 @@ class SingleSummoner:
                 print('_', end='',flush=True)
                 time.sleep(.1)
 
+        # DEBUG
         print('Retrieved {}'.format(self.get_instance()))
         logger.debug('Summoner init complete, {}'.format(self.get_instance()))
 
@@ -92,10 +98,14 @@ class SingleSummoner:
                                            region=self.region).exists()
 
     def get_summoner_by_name(self):
-        RiotAPI.get_summoner(region=self.region, name=self.std_name)
+        chain(RiotAPI.get_summoner(region=self.region, name=self.std_name),
+              riot_api.s().
+              store_get_summoner.s(region=self.region))()
 
     def get_summoner_by_id(self):
-        RiotAPI.get_summoners(region=self.region, ids=[self.summoner.summoner_id])
+        chain(RiotAPI.get_summoners(region=self.region, ids=[self.summoner.summoner_id]),
+              riot_api.s(),
+              store_get_summoners.s(region=self.region))()  # TODO: This was singular form; check!
 
     def get_instance(self):
         """
@@ -121,11 +131,13 @@ class SingleSummoner:
         return self.summoner
 
     def get_match_history(self):
-        RiotAPI.get_match_history(summoner_id=self.summoner.summoner_id,
-                                  region=self.summoner.region)
+        return RiotAPI.get_match_list(summoner_id=self.summoner.summoner_id,
+                                      region=self.summoner.region)
 
     def get_league(self):
-        RiotAPI.get_league(self.summoner.summoner_id, self.summoner.region)
+        chain(RiotAPI.get_league(self.summoner.summoner_id, self.summoner.region),
+              riot_api.s(),
+              store_get_league.s(region=self.summoner.region))()
 
     # # TODO: Consider calling self.summoner.refresh_from_db().
     # def is_cache_fresh(self):
@@ -201,11 +213,18 @@ class SingleSummoner:
         """
         logger.debug('Summoner full query started on [{}] {}'.format(self.region, self.std_name))
 
-        self.get_summoner_by_id()
-        self.get_match_history()
-        self.get_league()
+        # self.get_summoner_by_id()
+        # self.get_match_history()
+        # self.get_league()
 
-        logger.debug('Summoner full query completed on [{}] {}'.format(self.region, self.std_name))
+        # logger.debug('Summoner full query completed on [{}] {}'.format(self.region, self.std_name))
+
+        # job = group((get_summoner_by_id.s(self.region, self.summoner.summoner_id),
+        #              get_match_history.s(self.region, self.summoner.summoner_id),
+        #              get_league.s(self.region, self.summoner.summoner_id)
+        #              )).apply_async()
+
+        # return full_query(self.region, self.summoner.summoner_id)
 
     def partial_query(self):
         """
