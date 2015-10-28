@@ -9,6 +9,7 @@ Alternatively, use workers.sh.
 
 import os
 import logging
+import time
 
 from celery import Celery
 from riotwatcher.riotwatcher import (RiotWatcher,
@@ -49,10 +50,11 @@ riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 # TODO: Move tasks into separate modules.
 # TODO: Create separate task for static API calls (not counted against rate limit).
 
-# TODO: Refine parameters for retrying.
+# TODO: Refine parameters for retrying: read that new response header for when we can retry!
+# FIXME: Params
 @app.task(bind=True, ignore_result=False, rate_limit='.5/s', max_retries=3,
           default_retry_delay=2)
-def riot_api(self, fn, args):
+def riot_api(self, kwargs):
     """
     A rate-limited task that queries the Riot API using a RiotWatcher instance.
 
@@ -67,17 +69,17 @@ def riot_api(self, fn, args):
     If an LoLException is thrown, automatically retries up to 3 times,
     with a 2 second delay between each attempt.
     """
-    func = getattr(riot_watcher, fn)
 
-    if 'region' in args:
-        args['region'] = args['region'].lower()
+    logger.debug('kwargs: {}, task ID: {}'.format(kwargs, self.request.id))
+    func = getattr(riot_watcher, kwargs.pop('method'))
 
-    logger.debug('{}, args: {}, task ID: {}'.format(fn, args, self.request.id))
+    if 'region' in kwargs:
+        kwargs['region'] = kwargs['region'].lower()
 
     # Note: Preventing exceptions from propagating hides them from flower.
     # Exceptions of type `retry` will however, be shown.
     try:
-        result = func(**args)
+        result = func(**kwargs)
     except LoLException as e:
         if e == error_500 or e == error_503:
             logger.error('5xx error, retrying ({})'.format(e))
