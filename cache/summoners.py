@@ -35,7 +35,7 @@ class SingleSummoner:
     def __init__(self, std_name=None, summoner_id=None, region=None):
         # These attributes are only used to get the summoner instance
         # and should not be referenced after __init__ completes.
-        self.std_name = std_name
+        self.std_name = std_name.lower()
         self.summoner_id = summoner_id
         self.region = region
         self.summoner = None
