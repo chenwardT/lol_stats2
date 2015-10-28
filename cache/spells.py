@@ -4,9 +4,13 @@ Management class for spell data retrieval.
 
 import logging
 
+from celery import chain
+
 from riot_api.wrapper import RiotAPI
+from lol_stats2.celery import riot_api, store_static_get_summoner_spell_list
 
 logger = logging.getLogger(__name__)
+
 
 class SpellManager:
     """
@@ -17,4 +21,6 @@ class SpellManager:
     @staticmethod
     def get_all():
         logger.debug()
-        RiotAPI.static_get_summoner_spell_list()
+        chain(RiotAPI.static_get_summoner_spell_list(),
+              riot_api.s(),
+              store_static_get_summoner_spell_list.s())()
