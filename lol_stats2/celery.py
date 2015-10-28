@@ -11,7 +11,7 @@ import os
 import logging
 import time
 
-from celery import Celery
+from celery import Celery, chain, group
 from riotwatcher.riotwatcher import (RiotWatcher,
                                      LoLException,
                                      error_400,
@@ -217,7 +217,7 @@ def store_get_challenger(result, region):
     logger.info('Updated challenger league for {}'.format(region))
 
 @app.task(ignore_result=True, routing_key='store.get_league')
-def store_get_league(result, summoner_id, region):
+def store_get_league(result, region):
     """
     Callback that stores the result of the RiotWatcher get_league calls.
     `summoner_id` is expected to be the single key of the `result` dict.
