@@ -6,16 +6,10 @@ import logging
 from datetime import datetime
 
 import pytz
+from celery import chain, group
 
 from lol_stats2.celery import (app,
                                riot_api,
-                               store_get_summoner,
-                               store_get_summoners,
-                               store_static_get_champion_list,
-                               store_static_get_summoner_spell_list,
-                               store_get_recent_games,
-                               store_get_challenger,
-                               store_get_league,
                                store_get_match)
 from matches.models import MatchDetail
 from summoners.models import Summoner
@@ -23,32 +17,29 @@ from summoners.models import Summoner
 logger = logging.getLogger(__name__)
 
 
-# TODO: Lots of repetition of strings here.
-# Consider putting all "store" methods in a class.
-# Also, using a single string containing a method name to control flow.
 class RiotAPI:
+    """
+    This class contains static methods to generate arguments to pass to riot_api
+    as well as tasks related to chained operations, like getting a summoner's matches.
+    """
     # TODO: Consolidate with get_summoners.
     @staticmethod
     def get_summoner(name=None, region=None):
         """
         Gets and stores a single summoner given name and region.
         """
-        func = 'get_summoner'
-        kwargs = {'name': name, 'region': region}
+        kwargs = {'method': 'get_summoner', 'name': name, 'region': region}
 
-        return riot_api.apply_async((func, kwargs),
-                                    link=store_get_summoner.s(region=region))
+        return kwargs
 
     @staticmethod
     def get_summoners(names=None, ids=None, region=None):
         """
         Gets and stores a list of summoners by name or ID for a given region.
         """
-        func = 'get_summoners'
-        kwargs = {'names': names, 'ids': ids, 'region': region}
+        kwargs = {'method': 'get_summoners', 'names': names, 'ids': ids, 'region': region}
 
-        return riot_api.apply_async((func, kwargs),
-                                    link=store_get_summoners.s(region=region))
+        return kwargs
 
     @staticmethod
     def static_get_champion_list(region=None, locale=None, version=None,
@@ -56,12 +47,14 @@ class RiotAPI:
         """
         Gets and stores the list of champions.
         """
-        func = 'static_get_champion_list'
-        kwargs = {'region': region, 'locale': locale, 'version': version,
-                  'data_by_id': data_by_id, 'champ_data': champ_data}
+        kwargs = {'method': 'static_get_champion_list',
+                  'region': region,
+                  'locale': locale,
+                  'version': version,
+                  'data_by_id': data_by_id,
+                  'champ_data': champ_data}
 
-        return riot_api.apply_async((func, kwargs),
-                                    link=store_static_get_champion_list.s())
+        return kwargs
 
     @staticmethod
     def static_get_summoner_spell_list(region=None, locale=None, version=None,
@@ -69,32 +62,33 @@ class RiotAPI:
         """
         Gets and stores the list of summoner spells.
         """
-        func = 'static_get_summoner_spell_list'
-        kwargs = {'region': region, 'locale': locale, 'version': version,
-                  'data_by_id': data_by_id, 'spell_data': spell_data}
+        kwargs = {'method': 'static_get_summoner_spell_list',
+                  'region': region,
+                  'locale': locale,
+                  'version': version,
+                  'data_by_id': data_by_id,
+                  'spell_data': spell_data}
 
-        return riot_api.apply_async((func, kwargs),
-                                    link=store_static_get_summoner_spell_list.s())
+        return kwargs
 
+    # Unused, see Game vs MatchDetail (this is unranked matches)
     @staticmethod
     def get_recent_games(summoner_id, region=None):
-        func = 'get_recent_games'
-        kwargs = {'summoner_id': summoner_id, 'region': region}
+        kwargs = {'method': 'get_recent_games',
+                  'summoner_id': summoner_id,
+                  'region': region}
 
-        return riot_api.apply_async((func, kwargs),
-                                    link=store_get_recent_games.s(summoner_id=summoner_id,
-                                                                  region=region))
+        return kwargs
 
     @staticmethod
     def get_challenger(region=None):
         """
         Gets and stores the challenger league for the given region.
         """
-        func = 'get_challenger'
-        kwargs = {'region': region}
+        kwargs = {'method': 'get_challenger',
+                  'region': region}
 
-        return riot_api.apply_async((func, kwargs),
-                                    link=store_get_challenger.s(region=region))
+        return kwargs
 
     @staticmethod
     def get_league(summoner_ids, region=None):
@@ -105,109 +99,24 @@ class RiotAPI:
         Also updates any extant related summoners' last_leagues_update
         fields to now.
         """
-        func = 'get_league'
-
+        # Coerce to list if only a single summoner ID.
         if isinstance(summoner_ids, int):
-            kwargs = {'summoner_ids': [summoner_ids], 'region': region}
+            summoner_ids = list((summoner_ids,))
 
-            summoner_query = Summoner.objects.filter(summoner_id=summoner_ids,
-                                                     region=region)
+        kwargs = {'method': 'get_league',
+                  'summoner_ids': summoner_ids,
+                  'region': region}
+
+        for summoner_id in summoner_ids:
+            summoner_query = Summoner.objects.filter(summoner_id=summoner_id, region=region)
             if summoner_query.exists():
                 now = datetime.now(tz=pytz.utc)
                 summoner = summoner_query.get()
                 summoner.last_leagues_update = now
                 summoner.save()
-                logger.info('Set {} last_leagues_update to now: {}'
-                            .format(summoner, now))
-        else:
-            kwargs = {'summoner_ids': summoner_ids, 'region': region}
+                logger.info('Set {} last_leagues_update to now: {}'.format(summoner, now))
 
-            for id in summoner_ids:
-                summoner_query = Summoner.objects.filter(summoner_id=id,
-                                                         region=region)
-                if summoner_query.exists():
-                    now = datetime.now(tz=pytz.utc)
-                    summoner = summoner_query.get()
-                    summoner.last_leagues_update = now
-                    summoner.save()
-                    logger.info('Set {} last_leagues_update to now: {}'
-                                .format(summoner, now))
-
-        return riot_api.apply_async((func, kwargs),
-                                    link=store_get_league.s(summoner_ids, region))
-
-    @staticmethod
-    def get_match(match_id, region=None, include_timeline=False, check=True):
-        """
-        Gets a single match, timeline data optionally included.
-
-        If `check` is True, the match won't be fetched if it is already stored.
-
-        Note: Timeline data models not implemented.
-        """
-        func = 'get_match'
-        kwargs = {'match_id': match_id,
-                  'region': region,
-                  'include_timeline': include_timeline}
-
-        if check and not MatchDetail.objects.filter(match_id=match_id,
-                                                    region=region.upper()).exists():
-            return riot_api.apply_async((func, kwargs),
-                                        link=store_get_match.s())
-        else:
-            return riot_api.apply_async((func, kwargs),
-                                        link=store_get_match.s())
-
-    # ENDPOINT REMOVED
-    # @staticmethod
-    # def get_match_history(summoner_id, region=None, champion_ids=None,
-    #                       ranked_queues='RANKED_SOLO_5x5', begin_index=None,
-    #                       end_index=None):
-    #     """
-    #     Gets a range of matches (max 15), based on indices.
-    #
-    #     Used to get a list of match IDs to feed into get_match,
-    #     via get_matches_from_ids.
-    #
-    #     Also updates any extant related summoners' last_matches_update
-    #     fields to now.
-    #     """
-    #     _ALLOWED_QUEUES = ('RANKED_SOLO_5x5', 'RANKED_TEAM_5x5')
-    #     func = 'get_match_history'
-    #     kwargs = {'summoner_id': summoner_id,
-    #               'region': region,
-    #               'champion_ids': champion_ids,
-    #               'ranked_queues': ranked_queues,
-    #               'begin_index': begin_index,
-    #               'end_index': end_index}
-    #
-    #     if ranked_queues not in _ALLOWED_QUEUES:
-    #         logger.error('Unsupported value for "ranked_queues": {};'
-    #                      'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
-    #                      .format(ranked_queues))
-    #         raise ValueError('Unsupported value for "ranked_queues": {};'
-    #                          'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
-    #                          .format(ranked_queues))
-    #     else:
-    #         summoner_query = Summoner.objects.filter(region=region,
-    #                                                  summoner_id=summoner_id)
-    #
-    #         # TODO: This may be misleading, as the time of the actual
-    #         # get_matches_from_ids or get_match calls don't necessarily
-    #         # occur immediately after this executes, e.g. when queues
-    #         # are backed up.
-    #         # Possible solution: pass summoner ID through to
-    #         # get_matches_from_ids and update last_matches_update field there.
-    #         if summoner_query.exists():
-    #             now = datetime.now(tz=pytz.utc)
-    #             summoner = summoner_query.get()
-    #             summoner.last_matches_update = now
-    #             summoner.save()
-    #             logger.info('Set {} last_matches_update to now: {}'
-    #                         .format(summoner, now))
-    #
-    #         return riot_api.apply_async((func, kwargs),
-    #                                     link=get_matches_from_ids.s(region))
+        return kwargs
 
     # TODO: There is no upper limit on the number of match IDs that can be
     # retrieved now, so we need to consider how to handle large amounts of
@@ -229,17 +138,20 @@ class RiotAPI:
                        seasons=None, begin_time=None, end_time=None, begin_index=None,
                        end_index=None):
         """
-        Gets all matches that satisfy the filters (args).
+        Gets all matches that satisfy the filters (args) for the specified summoner ID.
 
-        Used to get a list of match IDs to feed into get_match,
-        via get_matches_from_ids.
+        Reads match IDs from the response and starts a group of tasks that each get those
+        matches.
 
         Also updates any extant related summoners' last_matches_update
         fields to now.
+
+        Returns the executed group.
         """
         _ALLOWED_QUEUES = ('RANKED_SOLO_5x5', 'RANKED_TEAM_5x5')
-        func = 'get_match_list'
-        kwargs = {'summoner_id': summoner_id,
+
+        kwargs = {'method': 'get_match_list',
+                  'summoner_id': summoner_id,
                   'region': region,
                   'champion_ids': champion_ids,
                   'ranked_queues': ranked_queues,
@@ -272,60 +184,73 @@ class RiotAPI:
                 summoner = summoner_query.get()
                 summoner.last_matches_update = now
                 summoner.save()
-                logger.info('Set {} last_matches_update to now: {}'
-                            .format(summoner, now))
+                logger.info('Set {} last_matches_update to now: {}'.format(summoner, now))
 
-            return riot_api.apply_async((func, kwargs),
-                                        link=get_matches_from_ids.s(region))
+            # return riot_api.apply_async((func, kwargs),
+            #                             link=get_matches_from_ids.s(region))
 
+            # TODO: execute chain here vs inside group below?
+            get_ids_chain = chain(riot_api.s(kwargs), RiotAPI.get_matches_from_ids.s(region=region))()
 
-@app.task(ignore_result=True)
-def get_matches_from_ids(result, region, max_matches=10, recent_first=True):
-    """
-    Callback that parses the result dict for match IDs and feeds them back to
-    the get_match for getting each match's full dataset (this method's received
-    `result` only contains the data for the summoner ID that was passed to it).
+            return group(chain(RiotAPI.get_match.s(match_id=match_id, region=region),
+                               riot_api.s(),
+                               store_get_match.s()) for match_id in get_ids_chain.get())()
 
-    max_matches specifies the maximum number of matches to fetch from the result
-    dict.
+    @app.task
+    def get_match(match_id, region=None, include_timeline=False):
+        """
+        Gets a single match, timeline data optionally included.
 
-    If recent_first is set, the max_matches slice will be take the most recent
-    matches (end of the dict), otherwise it will take the earliest.
+        If `check` is True, the match won't be fetched if it is already stored.
+        This receives a list of match IDs from get_matches_from_ids.
 
-    Returns a count of the matches that were saved (cached match data is not
-    fetched).
+        Note: Timeline data models not implemented.
+        """
+        kwargs = {'method': 'get_match',
+                  'match_id': match_id,
+                  'region': region,
+                  'include_timeline': include_timeline}
 
-    Note: Only works with matches of type 5x5, which are the only ones allowed
-    by RiotAPI.get_match_list.
-    """
-    saved = 0
+        return kwargs
 
-    if 'matches' in result:
-        logger.debug('{} matches in result'.format(len(result['matches'])))
+    # TODO: The region could be passed along with the match IDs so the caller of
+    # the chain doesn't have to.
+    @app.task(ignore_result=False)
+    def get_matches_from_ids(result, region, max_matches=None, recent_first=False):
+        """
+        Callback that parses the result dict for match IDs and feeds them back to
+        the get_match for getting each match's full dataset (this method's received
+        `result` only contains the data for the summoner ID that was passed to it).
 
-        # Slice out the portion of the matches we are interested in.
-        if max_matches:
-            if recent_first:
-                result['matches'] = result['matches'][-max_matches:]
-            else:
-                result['matches'] = result['matches'][:max_matches]
+        max_matches specifies the maximum number of matches to fetch from the result
+        dict.
 
-        logger.debug('{} matches sliced out.'.format(len(result['matches'])))
+        If recent_first is set, the max_matches slice will be take the most recent
+        matches (end of the dict), otherwise it will take the earliest.
 
-        # Determine which matches we already have.
-        result_ids = set([match['matchId'] for match in result['matches']])
-        known_ids = set(MatchDetail.objects.filter(match_id__in=result_ids)
-                        .values_list('match_id', flat=True))
-        ids_to_query = result_ids - known_ids
+        Returns a list of match_ids to query.
 
-        logger.debug('{} matches will be fetched.'.format(len(ids_to_query)))
+        Note: Only works with matches of type 5x5, which are the only ones allowed
+        by RiotAPI.get_match_list.
+        """
+        ids_to_query = []
 
-        # Use check=False b/c we just checked that these match IDs
-        # aren't known.
-        for id in ids_to_query:
-            RiotAPI.get_match(id, region, check=False)
-            saved += 1
+        if 'matches' in result:
+            logger.debug('{} matches in result'.format(len(result['matches'])))
 
-    logger.info('{} new matches received.'.format(saved))
+            # Get max_matches from the end or beginning.
+            if max_matches:
+                if recent_first:
+                    result['matches'] = result['matches'][-max_matches:]
+                else:
+                    result['matches'] = result['matches'][:max_matches]
 
-    return saved
+            # Skip the matches we already have.
+            result_ids = set([match['matchId'] for match in result['matches']])
+            known_ids = set(MatchDetail.objects.filter(match_id__in=result_ids)
+                            .values_list('match_id', flat=True))
+            ids_to_query = list(result_ids - known_ids)
+
+            logger.debug('{} matches will be fetched.'.format(len(ids_to_query)))
+
+        return ids_to_query
