@@ -1,6 +1,9 @@
+from celery import chain
+
 from leagues.models import League
 from utils.functions import chunks
 from riot_api.wrapper import RiotAPI
+from lol_stats2.celery import riot_api, store_get_summoners
 
 challenger_leagues = {
     "euw": "Wukong's Lancers",
@@ -25,4 +28,6 @@ for region in challenger_leagues:
     chunked_ids = chunks(challenger_ids, 40)
 
     for chunk in chunked_ids:
-        RiotAPI.get_summoners(ids=chunk, region=region)
+        chain(RiotAPI.get_summoners(ids=chunk, region=region),
+              riot_api.s(),
+              store_get_summoners.s(region=region))()
