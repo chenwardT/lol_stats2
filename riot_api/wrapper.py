@@ -10,7 +10,8 @@ from celery import chain, group
 
 from lol_stats2.celery import (app,
                                riot_api,
-                               store_get_match)
+                               store_get_match,
+                               store_get_summoners)
 from matches.models import MatchDetail
 from summoners.models import Summoner
 
@@ -36,7 +37,7 @@ class RiotAPI:
 
         kwargs = {'method': 'get_summoners', 'names': names, 'ids': ids, 'region': region}
 
-        return kwargs
+        return chain(riot_api.s(kwargs), store_get_summoners.s(region=region))()
 
     @staticmethod
     def static_get_champion_list(region=None, locale=None, version=None,
