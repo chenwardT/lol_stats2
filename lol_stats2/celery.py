@@ -130,6 +130,7 @@ def store_get_summoners(result, region):
         logging.info('Got {} summoners, {} updated, {} created'.format(
             updated + created, updated, created))
 
+
 @app.task(ignore_result=True)
 def store_static_get_champion_list(result):
     """
@@ -156,6 +157,7 @@ def store_static_get_champion_list(result):
 
     return created
 
+
 # TODO: In testing, when this got ran repeatedly in a short period of time,
 # it looks like they can be run in parallel (we don't want that) as shown by
 # IntegrityError exceptions.
@@ -171,6 +173,7 @@ def store_static_get_summoner_spell_list(result):
         SummonerSpell.objects.create_spell(attrs)
 
     logger.info('Got {} summoner spells'.format(len(result['data'])))
+
 
 # Unused, as MatchDetail is all we're using for now (ranked games).
 # TODO: Use game IDs to get match data.
@@ -189,6 +192,7 @@ def store_get_recent_games(result, summoner_id, region):
 
     logger.info('Got {} games'.format(len(result['games'])))
 
+
 @app.task(ignore_result=True)
 def store_get_challenger(result, region):
     """
@@ -199,6 +203,7 @@ def store_get_challenger(result, region):
     League.objects.create_or_update_league(result, region)
 
     logger.info('Updated challenger league for {}'.format(region))
+
 
 @app.task(ignore_result=True, routing_key='store.get_league')
 def store_get_league(result, region):
@@ -221,6 +226,7 @@ def store_get_league(result, region):
             logger.info('Got {} leagues for [{}] {}'.format(
                 len(result[id]), region, id))
 
+
 @app.task(ignore_result=True)
 def store_get_match(result):
     """
@@ -236,22 +242,3 @@ def store_get_match(result):
         created = MatchDetail.objects.create_match(result)
 
         logger.info('Got match {}'.format(created))
-
-# Unused, see cache.wrapper.get_matches_from_ids
-# @app.task
-# def store_get_match_history(result, region):
-#     """
-#     Callback that parses the result dict for match IDs and feeds them back to
-#     the wrapper for getting each match's full dataset (this method's received
-#     `result` only contains the data for the summoner ID that was passed to it).
-#
-#     Note: Assumes matches are of type 5v5.
-#     """
-#
-#     match_ids = []
-#
-#     for match in result['matches']:
-#         match_ids.append(match['matchId'])
-#
-#     for match_id in match_ids:
-#         RiotAPI.get_match(match_id, region=region, include_timeline=False)
