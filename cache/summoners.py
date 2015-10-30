@@ -42,7 +42,7 @@ class SingleSummoner:
         self.region = region
         self.summoner = None
 
-        logger.debug('Summoner init started, name: {}, ID: {}, region: {}'.format(
+        logger.info('Summoner init started, name: {}, ID: {}, region: {}'.format(
             self.std_name, self.summoner_id, self.region))
 
         # TODO: Should this be caught at a lower level, and then we can
@@ -93,14 +93,10 @@ class SingleSummoner:
                                            region=self.region).exists()
 
     def get_summoner_by_name(self):
-        chain(RiotAPI.get_summoner(region=self.region, name=self.std_name),
-              riot_api.s().
-              store_get_summoner.s(region=self.region))()
+        RiotAPI.get_summoners(names=self.std_name, region=self.region)
 
     def get_summoner_by_id(self):
-        chain(RiotAPI.get_summoners(region=self.region, ids=[self.summoner.summoner_id]),
-              riot_api.s(),
-              store_get_summoners.s(region=self.region))()  # TODO: This was singular form; check!
+        RiotAPI.get_summoners(ids=self.summoner.summoner_id, region=self.region)
 
     def get_instance(self):
         """
