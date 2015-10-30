@@ -68,21 +68,15 @@ class SingleSummoner:
             # so data fetching progress can be seen/acted upon, also
             # remove synchronous behavior here.
 
+            # DEBUG - for console use
             # Wait until result is stored.
-
-            # TODO: Cleanup; use the chain methods we now have access to.
-            # DEBUG
-            while task.children is None:
-                print('.', end='',flush=True)
+            while task.status != 'SUCCESS':
+                print('.', end='', flush=True)
                 time.sleep(.1)
 
-            while task.children[0].status != 'SUCCESS':
-                print('_', end='',flush=True)
-                time.sleep(.1)
-
-        # DEBUG
+        # DEBUG - for console use
         print('Retrieved {}'.format(self.get_instance()))
-        logger.debug('Summoner init complete, {}'.format(self.get_instance()))
+        logger.info('Summoner init complete, {}'.format(self.get_instance()))
 
     def is_known(self):
         """
