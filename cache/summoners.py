@@ -246,6 +246,3 @@ class SingleSummoner:
     #                              region=self.region)
 
 @app.task
-def get_summoner_task(std_name, region):
-    riot_api.apply_async(('get_summoner', {'name': std_name,'region': region}),
-                         link=store_get_summoner.s(region=region))
