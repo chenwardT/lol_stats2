@@ -94,26 +94,9 @@ def riot_api(self, kwargs):
 
     return result
 
+
 # TODO: Consider renaming these tasks.
 # TODO: Can these tasks be put in a class and passed around instead of individually?
-@app.task(routing_key='store.get_summoner')
-def store_get_summoner(result, region):
-    """
-    Callback that stores the result of RiotWatcher get_summoner calls.
-    See `link` argument of riot_api call in RiotAPI.get_summoner.
-
-    Returns the created/updated Summoner object.
-    """
-    region = region.upper()
-    query = Summoner.objects.filter(region=region, summoner_id=result['id'])
-
-    if not query.exists():
-        summoner = Summoner.objects.create_summoner(region, result)
-    else:
-        summoner = query[0]
-        summoner.update(region, result)
-
-    return summoner
 
 # TODO: Seems to not be filling out all data. Fixed?
 # Check that Summoners created from Matches are getting their remaining
@@ -128,16 +111,17 @@ def store_get_summoners(result, region):
     updated = 0
     created = 0
 
-    for summoner_id in result:
+    for entry in result:
+        logger.debug(entry)
         potentially_extant_summoner = Summoner.objects.filter(
-            summoner_id=summoner_id, region=region)
+            summoner_id=result[entry]['id'], region=region)
 
         if potentially_extant_summoner.exists():
             summoner = potentially_extant_summoner.get()
-            summoner.update(region, result[summoner_id])
+            summoner.update(region, result[entry])
             updated += 1
         else:
-            Summoner.objects.create_summoner(region, result[summoner_id])
+            Summoner.objects.create_summoner(region, result[entry])
             created += 1
 
     if updated == 0 and created == 0:
