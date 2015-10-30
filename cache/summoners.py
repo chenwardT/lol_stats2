@@ -13,7 +13,7 @@ from celery import chord, group, chain
 from summoners.models import Summoner
 from leagues.models import LeagueEntry
 from riot_api.wrapper import RiotAPI
-from lol_stats2.celery import app, riot_api, store_get_summoner, store_get_league, store_get_summoners
+from lol_stats2.celery import app, riot_api, store_get_league, store_get_summoners
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +60,9 @@ class SingleSummoner:
         # If the summoner isn't already known, the first time we get it
         # will be via name, meaning we have a std_name to work with.
         if not self.is_known():
-            task = chain(RiotAPI.get_summoner(self.std_name, self.region),
-                         riot_api.s(),
-                         store_get_summoner.s(region=self.region))()
+            logger.info('Summoner not known, querying Riot for: [{}] {}'
+                        .format(self.region, self.std_name))
+            task = RiotAPI.get_summoners(names=self.std_name, region=self.region)
 
             # TODO: When invoked by ajax, must expose task ID to frontend
             # so data fetching progress can be seen/acted upon, also
