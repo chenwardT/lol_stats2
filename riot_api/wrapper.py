@@ -134,7 +134,7 @@ class RiotAPI:
     @staticmethod
     def get_match_list(summoner_id, region=None, champion_ids=None, ranked_queues='RANKED_SOLO_5x5',
                        seasons=None, begin_time=None, end_time=None, begin_index=None,
-                       end_index=None):
+                       end_index=None, max_matches=10):
         """
         Gets all matches that satisfy the filters (args) for the specified summoner ID.
 
@@ -146,6 +146,8 @@ class RiotAPI:
 
         Returns the executed group.
         """
+        logger.info('Getting matches for {} [{}]'.format(summoner_id, region))
+
         _ALLOWED_QUEUES = ('RANKED_SOLO_5x5', 'RANKED_TEAM_5x5')
 
         kwargs = {'method': 'get_match_list',
@@ -188,7 +190,8 @@ class RiotAPI:
             #                             link=get_matches_from_ids.s(region))
 
             # TODO: execute chain here vs inside group below?
-            get_ids_chain = chain(riot_api.s(kwargs), RiotAPI.get_matches_from_ids.s(region=region))()
+            get_ids_chain = chain(riot_api.s(kwargs),
+                                  RiotAPI.get_matches_from_ids.s(region=region))()
 
             return group(chain(RiotAPI.get_match.s(match_id=match_id, region=region),
                                riot_api.s(),
@@ -213,20 +216,19 @@ class RiotAPI:
 
     # TODO: The region could be passed along with the match IDs so the caller of
     # the chain doesn't have to.
-    @app.task(ignore_result=False)
-    def get_matches_from_ids(result, region, max_matches=None, recent_first=False):
+    @app.task
+    def get_matches_from_ids(result, region, max_matches=10, recent_first=False):
         """
-        Callback that parses the result dict for match IDs and feeds them back to
-        the get_match for getting each match's full dataset (this method's received
-        `result` only contains the data for the summoner ID that was passed to it).
+        Parses the result dict for match IDs, compares them to stored matches,
+        and returns a list of match IDs that do not have corresponding matches
+        stored in the database. Used as a callback in get_match_list after
+        receiving a list of matches from Riot.
 
         max_matches specifies the maximum number of matches to fetch from the result
         dict.
 
         If recent_first is set, the max_matches slice will be take the most recent
         matches (end of the dict), otherwise it will take the earliest.
-
-        Returns a list of match_ids to query.
 
         Note: Only works with matches of type 5x5, which are the only ones allowed
         by RiotAPI.get_match_list.
@@ -243,12 +245,12 @@ class RiotAPI:
                 else:
                     result['matches'] = result['matches'][:max_matches]
 
-            # Skip the matches we already have.
+            # Skip the matches that are already stored in the DB.
             result_ids = set([match['matchId'] for match in result['matches']])
             known_ids = set(MatchDetail.objects.filter(match_id__in=result_ids)
                             .values_list('match_id', flat=True))
             ids_to_query = list(result_ids - known_ids)
 
-            logger.debug('{} matches will be fetched.'.format(len(ids_to_query)))
+            logger.info('{} matches will be fetched.'.format(len(ids_to_query)))
 
         return ids_to_query
