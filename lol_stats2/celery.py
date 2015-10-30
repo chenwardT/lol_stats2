@@ -102,7 +102,7 @@ def riot_api(self, kwargs):
 # Check that Summoners created from Matches are getting their remaining
 # data here!
 # Also check get_summoner for same.
-@app.task(ignore_result=True, routing_key='store.get_summoners')
+@app.task(routing_key='store.get_summoners')
 def store_get_summoners(result, region):
     """
     Callback that stores the result of RiotWatcher get_summoners calls.
@@ -178,7 +178,7 @@ def store_static_get_summoner_spell_list(result):
 # Unused, as MatchDetail is all we're using for now (ranked games).
 # TODO: Use game IDs to get match data.
 # This way, you get full participant data, instead of just the 1 player's items, etc.
-@app.task(ignore_result=True)
+@app.task
 def store_get_recent_games(result, summoner_id, region):
     """
     Callback that stores the result of RiotWatcher get_recent_games calls.
@@ -205,7 +205,7 @@ def store_get_challenger(result, region):
     logger.info('Updated challenger league for {}'.format(region))
 
 
-@app.task(ignore_result=True, routing_key='store.get_league')
+@app.task(routing_key='store.get_league')
 def store_get_league(result, region):
     """
     Callback that stores the result of the RiotWatcher get_league calls.
@@ -227,7 +227,7 @@ def store_get_league(result, region):
                 len(result[id]), region, id))
 
 
-@app.task(ignore_result=True)
+@app.task
 def store_get_match(result):
     """
     Callback that stores the result of RiotWatcher get_match calls.
