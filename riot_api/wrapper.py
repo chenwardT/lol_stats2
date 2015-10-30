@@ -22,21 +22,18 @@ class RiotAPI:
     This class contains static methods to generate arguments to pass to riot_api
     as well as tasks related to chained operations, like getting a summoner's matches.
     """
-    # TODO: Consolidate with get_summoners.
-    @staticmethod
-    def get_summoner(name=None, region=None):
-        """
-        Gets and stores a single summoner given name and region.
-        """
-        kwargs = {'method': 'get_summoner', 'name': name, 'region': region}
-
-        return kwargs
-
     @staticmethod
     def get_summoners(names=None, ids=None, region=None):
         """
         Gets and stores a list of summoners by name or ID for a given region.
         """
+        # Coerce to list if a single name or id
+        if isinstance(names, str):
+            names = list((names,))
+
+        if isinstance(ids, int):
+            ids = list((ids,))
+
         kwargs = {'method': 'get_summoners', 'names': names, 'ids': ids, 'region': region}
 
         return kwargs
