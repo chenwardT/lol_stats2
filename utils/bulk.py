@@ -124,8 +124,7 @@ def get_matches_for_summoners_without_history(summoners=None, region=None,
 
     if response == 'y':
         for summoner in query_list:
-            RiotAPI.get_match_list(summoner.summoner_id, region,
-                                   ranked_queues=ranked_queues, end_index=num_matches)
+            RiotAPI.get_match_list(summoner.summoner_id, region, ranked_queues=ranked_queues)
 
 
 def update_summoners(summoners=None, region=None):
@@ -198,8 +197,7 @@ def get_matches_for_leagues(leagues=None, region=None,
 
     if response == 'y':
         for summoner_id in known_summoners:
-            RiotAPI.get_match_list(summoner_id, region, ranked_queues=ranked_queues,
-                                   end_index=num_matches)
+            RiotAPI.get_match_list(summoner_id, region, ranked_queues=ranked_queues)
 
 
 def get_leagues_for_summoner_ids(ids=None, region=None):
