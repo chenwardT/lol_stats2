@@ -11,7 +11,8 @@ from celery import chain, group
 from lol_stats2.celery import (app,
                                riot_api,
                                store_get_match,
-                               store_get_summoners)
+                               store_get_summoners,
+                               store_get_league)
 from matches.models import MatchDetail
 from summoners.models import Summoner
 
@@ -114,7 +115,7 @@ class RiotAPI:
                 summoner.save()
                 logger.info('Set {} last_leagues_update to now: {}'.format(summoner, now))
 
-        return kwargs
+        return chain(riot_api.s(kwargs), store_get_league.s(region=region))
 
     # TODO: There is no upper limit on the number of match IDs that can be
     # retrieved now, so we need to consider how to handle large amounts of
