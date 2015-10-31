@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pytz
 from django.db import models
+from django.db import transaction
 
 from summoners.models import Summoner
 
@@ -10,15 +11,18 @@ logger = logging.getLogger(__name__)
 
 class LeagueManager(models.Manager):
     def create_or_update_league(self, attrs, region):
+
         possibly_extant_league = self.filter(region=region,
                                              queue=attrs['queue'],
                                              name=attrs['name'],
                                              tier=attrs['tier'])
-        if possibly_extant_league.exists():
-            league = possibly_extant_league.get()
-            return self.update_league(league, attrs, region)
-        else:
-            return self.create_league(attrs, region)
+        # TODO: Fine-tune this transaction!
+        with transaction.atomic():
+            if possibly_extant_league.exists():
+                league = possibly_extant_league.get()
+                return self.update_league(league, attrs, region)
+            else:
+                return self.create_league(attrs, region)
 
     def create_league(self, attrs, region):
         league = self.create(region=region, queue=attrs['queue'],
@@ -107,8 +111,8 @@ class LeagueEntryManager(models.Manager):
 
             if summoner_query.exists():
                 summoner_query.update(last_leagues_update=datetime.now(tz=pytz.utc))
-                logger.debug('updated last_leagues_update for {}'
-                             .format(summoner_query.get()))
+                logger.info('updated last_leagues_update for {}'
+                            .format(summoner_query.get()))
 
         logger.debug(entry)
 
