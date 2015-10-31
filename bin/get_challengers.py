@@ -28,6 +28,4 @@ for region in challenger_leagues:
     chunked_ids = chunks(challenger_ids, 40)
 
     for chunk in chunked_ids:
-        chain(RiotAPI.get_summoners(ids=chunk, region=region),
-              riot_api.s(),
-              store_get_summoners.s(region=region))()
+        RiotAPI.get_summoners(ids=chunk, region=region)
