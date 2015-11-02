@@ -115,7 +115,7 @@ class RiotAPI:
                 summoner.save()
                 logger.info('Set {} last_leagues_update to now: {}'.format(summoner, now))
 
-        return chain(riot_api.s(kwargs), store_get_league.s(region=region))
+        return chain(riot_api.s(kwargs), store_get_league.s(region=region))()
 
     # TODO: There is no upper limit on the number of match IDs that can be
     # retrieved now, so we need to consider how to handle large amounts of
