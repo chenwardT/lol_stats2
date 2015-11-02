@@ -16,13 +16,12 @@ class LeagueManager(models.Manager):
                                              queue=attrs['queue'],
                                              name=attrs['name'],
                                              tier=attrs['tier'])
-        # TODO: Fine-tune this transaction!
-        with transaction.atomic():
-            if possibly_extant_league.exists():
-                league = possibly_extant_league.get()
-                return self.update_league(league, attrs, region)
-            else:
-                return self.create_league(attrs, region)
+
+        if possibly_extant_league.exists():
+            league = possibly_extant_league.get()
+            return self.update_league(league, attrs, region)
+        else:
+            return self.create_league(attrs, region)
 
     def create_league(self, attrs, region):
         league = self.create(region=region, queue=attrs['queue'],
@@ -43,6 +42,7 @@ class League(models.Model):
     """
     Maps to Riot API League DTO.
     """
+    # TODO: Some (likely all) of these region values are lowercase; they should be uppercase!
     region = models.CharField(max_length=4, db_index=True)     # ex. NA
     queue = models.CharField(max_length=32)     # ex. RANKED_SOLO_5x5
     name = models.CharField(max_length=32)      # ex. Orianna's Warlocks
