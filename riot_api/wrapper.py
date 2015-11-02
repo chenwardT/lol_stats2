@@ -3,7 +3,7 @@ A wrapper for for the Celery task that uses the RiotWatcher instance.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 from celery import chain, group
@@ -89,8 +89,9 @@ class RiotAPI:
 
         return kwargs
 
+    # TODO: Set a reasonable default ttl.
     @staticmethod
-    def get_league(summoner_ids, region=None):
+    def get_league(summoner_ids, region=None, ttl=timedelta(minutes=1)):
         """
         Gets and stores leagues for the given summoner IDs in the given
         region.
@@ -98,24 +99,44 @@ class RiotAPI:
         Also updates any extant related summoners' last_leagues_update
         fields to now.
         """
+        ignorable = set()
+        summoner_ids = set(summoner_ids)
+
         # Coerce to list if only a single summoner ID.
         if isinstance(summoner_ids, int):
-            summoner_ids = list((summoner_ids,))
-
-        kwargs = {'method': 'get_league',
-                  'summoner_ids': summoner_ids,
-                  'region': region}
+            summoner_ids = {summoner_ids}
 
         for summoner_id in summoner_ids:
             summoner_query = Summoner.objects.filter(summoner_id=summoner_id, region=region.upper())
+
+            # Since we can only query leagues through summoners,
+            # and we don't know who is in the league yet,
+            # we track league update times on summoners,
+            # and thus can only update them if the summoner is known.
             if summoner_query.exists():
                 now = datetime.now(tz=pytz.utc)
                 summoner = summoner_query.get()
-                summoner.last_leagues_update = now
-                summoner.save()
-                logger.info('Set {} last_leagues_update to now: {}'.format(summoner, now))
 
-        return chain(riot_api.s(kwargs), store_get_league.s(region=region))()
+                # Allow the update to proceed if ttl has expired.
+                if summoner.last_leagues_update is None or \
+                   datetime.now(tz=pytz.utc) - summoner.last_leagues_update > ttl:
+                    summoner.last_leagues_update = now
+                    summoner.save()
+                    logger.info('Set {} last_leagues_update to now: {}'.format(summoner, now))
+                else:
+                    ignorable.add(summoner_id)
+
+        to_query = summoner_ids - ignorable
+        logger.debug('to_query: {}'.format(to_query))
+
+        kwargs = {'method': 'get_league',
+                  'summoner_ids': list(to_query),
+                  'region': region}
+
+        if len(to_query) != 0:
+            return chain(riot_api.s(kwargs), store_get_league.s(region=region))()
+        else:
+            logger.warning('No valid summoners to get leagues of.')
 
     # TODO: There is no upper limit on the number of match IDs that can be
     # retrieved now, so we need to consider how to handle large amounts of
@@ -192,11 +213,11 @@ class RiotAPI:
 
             # TODO: execute chain here vs inside group below?
             get_ids_chain = chain(riot_api.s(kwargs),
-                                  RiotAPI.get_matches_from_ids.s(region=region))()
+                                  RiotAPI.get_matches_from_ids.s(region=region))
 
             return group(chain(RiotAPI.get_match.s(match_id=match_id, region=region),
                                riot_api.s(),
-                               store_get_match.s()) for match_id in get_ids_chain.get())()
+                               store_get_match.s()) for match_id in get_ids_chain().get())()
 
     @app.task
     def get_match(match_id, region=None, include_timeline=False):
