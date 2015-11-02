@@ -101,20 +101,23 @@ class LeagueEntryManager(models.Manager):
         # If this entry isn't for a team, then update the Summoner's
         # last_leagues_update field.
 
+
+        # Removed in lieu of updating summoner's last_leagues_update during get_league.
         # TODO: To ensure the Summoner's last_leagues_update field is not written to
         # multiple times in a short period of time (e.g. when the summoner is in
         # multiple leagues) a time distance check may be performed.
-        if 'TEAM' not in attrs['playerOrTeamId']:
-            summoner_query = Summoner.objects.filter(
-                region=entry.league.region,
-                summoner_id=int(attrs['playerOrTeamId']))
+        #
+        # if 'TEAM' not in attrs['playerOrTeamId']:
+        #     summoner_query = Summoner.objects.filter(
+        #         region=entry.league.region.upper(),
+        #         summoner_id=int(attrs['playerOrTeamId']))
+        #
+        #     if summoner_query.exists():
+        #         summoner_query.update(last_leagues_update=datetime.now(tz=pytz.utc))
+        #         logger.info('updated last_leagues_update for {}'
+        #                     .format(summoner_query.get()))
 
-            if summoner_query.exists():
-                summoner_query.update(last_leagues_update=datetime.now(tz=pytz.utc))
-                logger.info('updated last_leagues_update for {}'
-                            .format(summoner_query.get()))
-
-        logger.debug(entry)
+        # logger.debug(entry)
 
         return entry
 
