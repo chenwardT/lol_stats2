@@ -107,7 +107,7 @@ class RiotAPI:
                   'region': region}
 
         for summoner_id in summoner_ids:
-            summoner_query = Summoner.objects.filter(summoner_id=summoner_id, region=region)
+            summoner_query = Summoner.objects.filter(summoner_id=summoner_id, region=region.upper())
             if summoner_query.exists():
                 now = datetime.now(tz=pytz.utc)
                 summoner = summoner_query.get()
