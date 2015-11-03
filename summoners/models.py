@@ -131,6 +131,10 @@ class Summoner(models.Model):
         else:
             return None
 
+    def matches(self):
+        related_set = self.participantidentity_set.select_related('match_detail')
+        return [related.match_detail for related in related_set]
+
     class Meta:
         unique_together = ('summoner_id', 'region')
         index_together = ('summoner_id', 'region')
