@@ -126,9 +126,7 @@ class SingleSummoner:
                                       region=self.summoner.region)
 
     def get_league(self):
-        chain(RiotAPI.get_league(self.summoner.summoner_id, self.summoner.region),
-              riot_api.s(),
-              store_get_league.s(region=self.summoner.region))()
+        return RiotAPI.get_league(summoner_ids=self.summoner.summoner_id, region=self.summoner.region)
 
     # # TODO: Consider calling self.summoner.refresh_from_db().
     # def is_cache_fresh(self):
