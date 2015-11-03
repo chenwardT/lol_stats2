@@ -200,20 +200,18 @@ class SingleSummoner:
         -ranked stats of this season
         -ranked stats of last season
         """
-        logger.debug('Summoner full query started on [{}] {}'.format(self.region, self.std_name))
+        logger.info('started on [{}] {}.'.format(self.region, self.std_name))
+        start_time = time.time()
+        match_job = self.get_match_history()
+        league_job = self.get_league()
 
-        # self.get_summoner_by_id()
-        # self.get_match_history()
-        # self.get_league()
+        all_jobs = [match_job, league_job] if league_job is not None else [match_job]
 
-        # logger.debug('Summoner full query completed on [{}] {}'.format(self.region, self.std_name))
+        while False in map(lambda x: x.successful(), all_jobs):
+            print('#', end='', flush=True)
+            time.sleep(.25)
 
-        # job = group((get_summoner_by_id.s(self.region, self.summoner.summoner_id),
-        #              get_match_history.s(self.region, self.summoner.summoner_id),
-        #              get_league.s(self.region, self.summoner.summoner_id)
-        #              )).apply_async()
-
-        # return full_query(self.region, self.summoner.summoner_id)
+        logger.info('completed in {0:.3f} seconds.'.format(time.time() - start_time))
 
     def partial_query(self):
         """
@@ -230,17 +228,3 @@ class SingleSummoner:
             if not LeagueEntry.objects.filter(player_or_team_id=self.summoner.summoner_id,
                                               league__region=self.summoner.region).exists():
                 self.get_league()
-
-    # def get_recent_games(self):
-    #     logger.info('Summoner - Recent Games Query on [{}] {}'.format(self.region, self.std_name))
-    #
-    #     # If this is a new summoner.
-    #     if not self.is_known():
-    #         self.get_summoner_by_name()
-    #
-    #     self.get_instance()
-    #
-    #     RiotAPI.get_recent_games(summoner_id=self.summoner.summoner_id,
-    #                              region=self.region)
-
-@app.task
