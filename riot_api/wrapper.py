@@ -100,11 +100,12 @@ class RiotAPI:
         fields to now.
         """
         ignorable = set()
-        summoner_ids = set(summoner_ids)
 
-        # Coerce to list if only a single summoner ID.
+        # Coerce to set if only a single summoner ID.
         if isinstance(summoner_ids, int):
             summoner_ids = {summoner_ids}
+        else:
+            summoner_ids = set(summoner_ids)
 
         for summoner_id in summoner_ids:
             summoner_query = Summoner.objects.filter(summoner_id=summoner_id, region=region.upper())
@@ -131,7 +132,7 @@ class RiotAPI:
 
         kwargs = {'method': 'get_league',
                   'summoner_ids': list(to_query),
-                  'region': region}
+                  'region': region.lower()}
 
         if len(to_query) != 0:
             return chain(riot_api.s(kwargs), store_get_league.s(region=region))()
