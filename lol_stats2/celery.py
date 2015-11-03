@@ -220,13 +220,13 @@ def store_get_league(result, region):
 
     # Empty dict means that the queried summoner is not in a league.
     if result != {}:
-        for id in result:
-            logger.debug('Reading leagues for summoner ID {}'.format(id))
-            for league in result[id]:
+        for summoner_id in result:
+            logger.debug('Reading leagues for summoner ID {}'.format(summoner_id))
+            for league in result[summoner_id]:
                 League.objects.create_or_update_league(league, region)
 
             logger.info('Got {} leagues for [{}] {}'.format(
-                len(result[id]), region, id))
+                len(result[summoner_id]), region, summoner_id))
 
 
 @app.task
