@@ -84,9 +84,11 @@ def riot_api(self, kwargs):
         if e == error_500 or e == error_503:
             logger.error('5xx error, retrying ({})'.format(e))
             raise self.retry(exc=e)
-        if e == error_429:
+        elif e == error_429:
             logger.error('429 error, retrying ({})'.format(e))
             raise self.retry(exc=e)
+        else:
+            logger.error('Unexpected error, retrying ({})'.format(e))
         result = {}
     except:
         logger.error('Unhandled exception', exc_info=True)
