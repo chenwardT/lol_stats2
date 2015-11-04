@@ -32,11 +32,12 @@ class SingleSummoner:
     _LEAGUE_UPDATE_INTERVAL = timedelta(minutes=15)
 
     # TODO: Can we combine error logging and exception raising?
-    def __init__(self, std_name=None, summoner_id=None, region=None):
+    # TODO: Rewrite init to not wait on get_summoners if we don't already know the summoner.
+    def __init__(self, name=None, summoner_id=None, region=None):
         # These attributes are only used to get the summoner instance
         # and should not be referenced after __init__ completes.
         # TODO: change from object scope to method scope?
-        self.std_name = std_name.lower().replace(' ','')
+        self.std_name = name.lower().replace(' ','') if name else None
         self.summoner_id = summoner_id
         self.region = region
         self.summoner = None
@@ -69,9 +70,9 @@ class SingleSummoner:
 
             # DEBUG - for console use
             # Wait until result is stored.
-            while task.status != 'SUCCESS':
+            while not task.successful():
                 print('.', end='', flush=True)
-                time.sleep(.1)
+                time.sleep(.5)
 
         # DEBUG - for console use
         print('Retrieved {}'.format(self.get_instance()))
@@ -95,7 +96,7 @@ class SingleSummoner:
         RiotAPI.get_summoners(names=self.std_name, region=self.region)
 
     def get_summoner_by_id(self):
-        RiotAPI.get_summoners(ids=self.summoner.summoner_id, region=self.region)
+        RiotAPI.get_summoners(ids=self.summoner_id, region=self.region)
 
     def get_instance(self):
         """
