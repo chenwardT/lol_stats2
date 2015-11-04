@@ -6,6 +6,7 @@ from summoners.views import SummonerViewSet, index, search, show, refresh
 from champions.views import ChampionViewSet
 from matches.views import MatchDetailViewSet
 from leagues.views import LeagueViewSet
+from cache.views import task_status
 
 router = routers.DefaultRouter()
 router.register(r'summoners', SummonerViewSet)
@@ -16,10 +17,6 @@ router.register(r'leagues', LeagueViewSet)
 admin.autodiscover()
 
 urlpatterns = patterns('',
-    # Examples:
-    # url(r'^$', 'lol_stats2.views.home', name='home'),
-    # url(r'^blog/', include('blog.urls')),
-
     url(r'^', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
@@ -27,7 +24,8 @@ urlpatterns = patterns('',
     url(r'^show/(?P<name>\w+)', show, name='show'),
     url(r'^search/', search),
     url(r'^refresh/', refresh, name='refresh'),
+    url(r'^task_status/', task_status, name='task_status'),
 
-    url(r'^grappelli/', include('grappelli.urls')), # grappelli URLS
+    url(r'^grappelli/', include('grappelli.urls')),
     url(r'^admin/', include(admin.site.urls)),
 )
