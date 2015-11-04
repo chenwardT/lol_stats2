@@ -1,6 +1,6 @@
 import inflection
 
-from celery.result import AsyncResult
+from celery.result import AsyncResult, GroupResult
 
 
 def chunks(l, n):
@@ -50,12 +50,26 @@ def underscore_dict(dct):
 
 def multi_task_status(task_ids):
     """
-    Returns True if and only if all task states are 'SUCCESS', otherwise False.
+    Returns True if and only if all task were successful, otherwise False.
     """
-    all_success = True
+    return False not in map(lambda task_id: AsyncResult(task_id).successful(), task_ids)
 
-    for task_id in task_ids:
-        if AsyncResult(task_id).state != 'SUCCESS':
-            all_success = False
 
-    return all_success
+def group_status(group_id, result_ids):
+    results = [AsyncResult(r_id) for r_id in result_ids]
+    gr = GroupResult(id, results)
+
+    return gr.successful()
+
+
+def coalesce_task_ids(results):
+    task_ids = []
+
+    for task in results:
+        if isinstance(task, GroupResult):
+            for async_result in task.children:
+                task_ids.append(async_result.id)
+        elif isinstance(task, AsyncResult):
+            task_ids.append(task.id)
+
+    return task_ids
