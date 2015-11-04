@@ -109,14 +109,22 @@ class Summoner(models.Model):
 
     def is_complete(self):
         """
-        Returns True if all fields are filled in, False otherwise,
-        such as when the Summoner is created from match data.
-        """
-        for f in self._meta.fields:
-            if getattr(self, f.name) is None:
-                return False
+        Returns True if appropriate fields are filled in.
 
-        return True
+        Otherwise returns False, such as when the Summoner is created from match data,
+        when it will be missing e.g. summoner level.
+        """
+        to_check = ('id',
+                    'summoner_id',
+                    'name',
+                    'std_name',
+                    'profile_icon_id',
+                    'revision_date',
+                    'summoner_level',
+                    'region')
+
+        return False not in map(lambda field: getattr(self, field) is not None,
+                                [field for field in to_check])
 
     def most_recent_match_date(self):
         match_model = apps.get_model('matches.MatchDetail')
