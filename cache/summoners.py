@@ -8,12 +8,11 @@ import time
 
 import pytz
 from django.db import transaction
-from celery import chord, group, chain
 
 from summoners.models import Summoner
 from leagues.models import LeagueEntry
 from riot_api.wrapper import RiotAPI
-from lol_stats2.celery import app, riot_api, store_get_league, store_get_summoners
+from utils.functions import coalesce_task_ids
 
 logger = logging.getLogger(__name__)
 
@@ -201,17 +200,12 @@ class SingleSummoner:
         -ranked stats of last season
         """
         logger.info('started on [{}] {}.'.format(self.region, self.std_name))
-        start_time = time.time()
         match_job = self.get_match_history()
         league_job = self.get_league()
 
-        all_jobs = [match_job, league_job] if league_job is not None else [match_job]
-
-        while False in map(lambda x: x.successful(), all_jobs):
-            print('#', end='', flush=True)
-            time.sleep(.25)
-
-        logger.info('completed in {0:.3f} seconds.'.format(time.time() - start_time))
+        # This gets returned to the frontend. The frontend shows "Loading" until it gets a
+        # positive response from multi_task_status. Then it can load the new data!
+        return coalesce_task_ids([match_job, league_job])
 
     def partial_query(self):
         """
