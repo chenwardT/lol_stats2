@@ -1,7 +1,10 @@
+import logging
+
 import inflection
 
 from celery.result import AsyncResult, GroupResult
 
+logger = logging.getLogger(__name__)
 
 def chunks(l, n):
     """
@@ -48,11 +51,17 @@ def underscore_dict(dct):
     return under_dict
 
 
+# TODO: Ensure task_ids exist and are of type AsyncResult.
 def multi_task_status(task_ids):
     """
     Returns True if and only if all task were successful, otherwise False.
     """
-    return False not in map(lambda task_id: AsyncResult(task_id).successful(), task_ids)
+    logger.debug('task_ids: {}'.format(task_ids))
+
+    if task_ids:
+        return False not in map(lambda task_id: AsyncResult(task_id).successful(), task_ids)
+    else:
+        return False
 
 
 def group_status(group_id, result_ids):
