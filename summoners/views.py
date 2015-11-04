@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 from rest_framework import viewsets
 from rest_framework.pagination import PageNumberPagination
 
-from .models import Summoner
+from .models import Summoner, standardize_name
 from .serializers import SummonerSerializer
 from .forms import SearchForm
 from cache.summoners import SingleSummoner
@@ -39,7 +40,7 @@ def search(request):
 
 
 def show(request, name):
-    q = Summoner.objects.filter(name=name, region='NA')
+    q = Summoner.objects.filter(std_name=standardize_name(name), region='NA')
 
     if q.exists():
         summoner = q.get()
@@ -55,6 +56,6 @@ def refresh(request):
         name = request.POST['name']
 
         ss = SingleSummoner(region='NA', std_name=name)
-        ss.full_query()
+        task_ids = ss.full_query()
 
-    return redirect('show', name=name)
+        return JsonResponse({'task_ids': task_ids})
