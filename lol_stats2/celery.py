@@ -113,18 +113,19 @@ def store_get_summoners(result, region):
     updated = 0
     created = 0
 
-    for entry in result:
-        logger.debug(entry)
-        potentially_extant_summoner = Summoner.objects.filter(
-            summoner_id=result[entry]['id'], region=region)
+    if result:
+        for entry in result:
+            logger.debug(entry)
+            potentially_extant_summoner = Summoner.objects.filter(
+                summoner_id=result[entry]['id'], region=region)
 
-        if potentially_extant_summoner.exists():
-            summoner = potentially_extant_summoner.get()
-            summoner.update(region, result[entry])
-            updated += 1
-        else:
-            Summoner.objects.create_summoner(region, result[entry])
-            created += 1
+            if potentially_extant_summoner.exists():
+                summoner = potentially_extant_summoner.get()
+                summoner.update(region, result[entry])
+                updated += 1
+            else:
+                Summoner.objects.create_summoner(region, result[entry])
+                created += 1
 
     if updated == 0 and created == 0:
         logger.warning('No summoners updated or created!')
