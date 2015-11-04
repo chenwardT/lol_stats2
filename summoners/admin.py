@@ -3,8 +3,10 @@ from django.contrib import admin
 from .models import Summoner
 from matches.models import ParticipantIdentity
 
+
 class ParticipantIdentityInline(admin.TabularInline):
     model = ParticipantIdentity
+
 
 @admin.register(Summoner)
 class SummonerAdmin(admin.ModelAdmin):
@@ -12,6 +14,7 @@ class SummonerAdmin(admin.ModelAdmin):
 
     list_filter = ('region',)
 
-    inlines = [
-        ParticipantIdentityInline,
-    ]
+    # FIXME: Very slow.
+    # inlines = [
+    #     ParticipantIdentityInline,
+    # ]
