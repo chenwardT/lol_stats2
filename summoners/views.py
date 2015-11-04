@@ -55,7 +55,7 @@ def refresh(request):
     if request.method == 'POST':
         name = request.POST['name']
 
-        ss = SingleSummoner(region='NA', std_name=name)
+        ss = SingleSummoner(name=name, region='NA')
         task_ids = ss.full_query()
 
         return JsonResponse({'task_ids': task_ids})
