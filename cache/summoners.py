@@ -59,7 +59,7 @@ class SingleSummoner:
 
         # If the summoner isn't already known, the first time we get it
         # will be via name, meaning we have a std_name to work with.
-        if not self.is_known():
+        if not self._is_known():
             logger.info('Summoner not known, querying Riot for: [{}] {}'
                         .format(self.region, self.std_name))
             task = RiotAPI.get_summoners(names=self.std_name, region=self.region)
@@ -75,10 +75,10 @@ class SingleSummoner:
                 time.sleep(.5)
 
         # DEBUG - for console use
-        print('Retrieved {}'.format(self.get_instance()))
-        logger.info('Summoner init complete, {}'.format(self.get_instance()))
+        print('Retrieved {}'.format(self._get_instance()))
+        logger.info('Summoner init complete, {}'.format(self._get_instance()))
 
-    def is_known(self):
+    def _is_known(self):
         """
         Checks for the existence of the summoner in the database.
 
@@ -92,13 +92,13 @@ class SingleSummoner:
             return Summoner.objects.filter(std_name=self.std_name,
                                            region=self.region).exists()
 
-    def get_summoner_by_name(self):
+    def _get_summoner_by_name(self):
         RiotAPI.get_summoners(names=self.std_name, region=self.region)
 
-    def get_summoner_by_id(self):
+    def _get_summoner_by_id(self):
         RiotAPI.get_summoners(ids=self.summoner_id, region=self.region)
 
-    def get_instance(self):
+    def _get_instance(self):
         """
         Get the appropriate model instance and assign it to self.summoner, where
         it is cached.
@@ -121,11 +121,11 @@ class SingleSummoner:
 
         return self.summoner
 
-    def get_match_history(self):
+    def _get_match_history(self):
         return RiotAPI.get_match_list(summoner_id=self.summoner.summoner_id,
                                       region=self.summoner.region)
 
-    def get_league(self):
+    def _get_league(self):
         return RiotAPI.get_league(summoner_ids=self.summoner.summoner_id, region=self.summoner.region)
 
     # # TODO: Consider calling self.summoner.refresh_from_db().
@@ -139,10 +139,10 @@ class SingleSummoner:
     #     # Alternatively, check caches for each model instead of everything we depend
     #     # on to further more granular cache refreshing.
     #     #
-    #     # return datetime.now(tz=pytz.utc) < (self.get_instance().last_update
+    #     # return datetime.now(tz=pytz.utc) < (self._get_instance().last_update
     #     #                                     + Summoner.CACHE_DURATION)
 
-    def is_matches_fresh(self):
+    def _is_matches_fresh(self):
         """
         Returns True if either is true:
 
@@ -174,7 +174,7 @@ class SingleSummoner:
         else:
             return False
 
-    def is_leagues_fresh(self):
+    def _is_leagues_fresh(self):
         """
         Returns True if the summoner's last_leagues_update is within a time
         distance of _LEAGUE_UPDATE_INTERVAL from now, otherwise False.
@@ -201,8 +201,8 @@ class SingleSummoner:
         -ranked stats of last season
         """
         logger.info('started on [{}] {}.'.format(self.region, self.std_name))
-        match_job = self.get_match_history()
-        league_job = self.get_league()
+        match_job = self._get_match_history()
+        league_job = self._get_league()
 
         # This gets returned to the frontend. The frontend shows "Loading" until it gets a
         # positive response from multi_task_status. Then it can load the new data!
@@ -222,4 +222,4 @@ class SingleSummoner:
         with transaction.atomic():
             if not LeagueEntry.objects.filter(player_or_team_id=self.summoner.summoner_id,
                                               league__region=self.summoner.region).exists():
-                self.get_league()
+                self._get_league()
