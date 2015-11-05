@@ -54,8 +54,8 @@ class SingleSummoner:
                              .format(self.region, self._ALLOWED_REGIONS))
 
         if not (self.summoner_id or self.std_name):
-            logger.error('Expecting summoner_id or std_name to be present.')
-            raise ValueError('Expecting summoner_id or std_name to be present.')
+            logger.error('Expecting summoner_id or name to be present.')
+            raise ValueError('Expecting summoner_id or name to be present.')
 
         # If the summoner isn't already known, the first time we get it
         # will be via name, meaning we have a std_name to work with.
@@ -105,6 +105,7 @@ class SingleSummoner:
 
         Returns summoner instance if found, otherwise None.
         """
+        # TODO: Replace w/Q object; OR the queries by name and ID to get summoner.
         if self.summoner is None:
             if self.summoner_id:
                 summoner_query = Summoner.objects.filter(region=self.region,
@@ -217,6 +218,7 @@ class SingleSummoner:
         -stats summary
         -ranked stats
         """
+        pass
 
     def query_if_no_league(self):
         with transaction.atomic():
