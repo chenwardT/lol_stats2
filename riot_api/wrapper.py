@@ -36,7 +36,7 @@ class RiotAPI:
         if isinstance(ids, int):
             ids = list((ids,))
 
-        kwargs = {'method': 'get_summoners', 'names': names, 'ids': ids, 'region': region}
+        kwargs = {'method': 'get_summoners', 'names': names, 'ids': ids, 'region': region.lower()}
 
         return chain(riot_api.s(kwargs), store_get_summoners.s(region=region))()
 
