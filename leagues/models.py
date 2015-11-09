@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 from django.db import models
@@ -31,12 +31,16 @@ class LeagueManager(models.Manager):
 
         return league
 
+    # TODO: Allow timedelta to be passedi n.
     def update_league(self, league, attrs, region):
-        logger.debug(league)
-        league.leagueentry_set.all().delete()
-        league.leagueentry_set.create_entries(attrs)
+        if league.last_update < (datetime.now(tz=pytz.utc) - timedelta(hours=2)):
+            logger.debug(league)
+            league.last_update = datetime.now(tz=pytz.utc)
+            league.save()
+            league.leagueentry_set.all().delete()
+            league.leagueentry_set.create_entries(attrs)
 
-        return league
+            return league
 
 class League(models.Model):
     """
