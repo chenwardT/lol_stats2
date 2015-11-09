@@ -20,6 +20,7 @@ from riotwatcher.riotwatcher import (RiotWatcher,
                                      error_429,
                                      error_500,
                                      error_503)
+from django_pglocks import advisory_lock
 
 from summoners.models import Summoner
 from champions.models import Champion
@@ -73,7 +74,7 @@ def riot_api(self, kwargs):
     logger.debug('kwargs: {}, task ID: {}'.format(kwargs, self.request.id))
     func = getattr(riot_watcher, kwargs.pop('method'))
 
-    if 'region' in kwargs:
+    if 'region' in kwargs and kwargs['region'] is not None:
         kwargs['region'] = kwargs['region'].lower()
 
     # Note: Preventing exceptions from propagating hides them from flower.
@@ -113,14 +114,17 @@ def store_get_summoners(result, region):
     updated = 0
     created = 0
 
+    logger.debug(Summoner.objects.all())
+
     if result:
         for entry in result:
-            logger.debug(entry)
+            logger.debug('using entry: {}: {}'.format(entry, result[entry]))
             potentially_extant_summoner = Summoner.objects.filter(
                 summoner_id=result[entry]['id'], region=region)
 
             if potentially_extant_summoner.exists():
                 summoner = potentially_extant_summoner.get()
+                logger.debug('potentially_extant_summoner: {}'.format(summoner.__dict__))
                 summoner.update(region, result[entry])
                 updated += 1
             else:
@@ -130,7 +134,7 @@ def store_get_summoners(result, region):
     if updated == 0 and created == 0:
         logger.warning('No summoners updated or created!')
     else:
-        logging.info('Got {} summoners, {} updated, {} created'.format(
+        logging.info('Stored {} summoners, {} updated, {} created'.format(
             updated + created, updated, created))
 
 
@@ -156,10 +160,9 @@ def store_static_get_champion_list(result):
             if not Champion.objects.filter(champion_id=attrs['id']).exists():
                 created.append(Champion.objects.create_champion(attrs))
 
-    logger.info('Got {} champions'.format(len(result['data'])))
+    logger.info('Stored {} champions'.format(len(result['data'])))
 
     return created
-
 
 # TODO: In testing, when this got ran repeatedly in a short period of time,
 # it looks like they can be run in parallel (we don't want that) as shown by
@@ -170,12 +173,15 @@ def store_static_get_summoner_spell_list(result):
     Callback that stores the result of RiotWatcher static_get_summoner_list calls.
     Since there are only a handful of spells, we replace all spells w/the new data.
     """
-    SummonerSpell.objects.all().delete()
+    lock_id = 'store_spells'
 
-    for attrs in result['data'].values():
-        SummonerSpell.objects.create_spell(attrs)
+    with advisory_lock(lock_id) as acquired:
+        SummonerSpell.objects.all().delete()
 
-    logger.info('Got {} summoner spells'.format(len(result['data'])))
+        for attrs in result['data'].values():
+            SummonerSpell.objects.create_spell(attrs)
+
+    logger.info('Stored {} summoner spells'.format(len(result['data'])))
 
 
 # Unused, as MatchDetail is all we're using for now (ranked games).
@@ -193,7 +199,7 @@ def store_get_recent_games(result, summoner_id, region):
                                    region=region).exists():
             Game.objects.create_game(attrs, summoner_id, region)
 
-    logger.info('Got {} games'.format(len(result['games'])))
+    logger.info('Stored {} games'.format(len(result['games'])))
 
 
 @app.task(ignore_result=True)
@@ -205,7 +211,7 @@ def store_get_challenger(result, region):
     """
     League.objects.create_or_update_league(result, region)
 
-    logger.info('Updated challenger league for {}'.format(region))
+    logger.info('Stored challenger league for {}'.format(region))
 
 
 @app.task(routing_key='store.get_league')
@@ -220,14 +226,19 @@ def store_get_league(result, region):
     # TODO: Fix IntegrityError, duplicate player_or_team_id + league_id.
 
     # Empty dict means that the queried summoner is not in a league.
-    if result != {}:
-        for summoner_id in result:
-            logger.debug('Reading leagues for summoner ID {}'.format(summoner_id))
-            for league in result[summoner_id]:
-                League.objects.create_or_update_league(league, region)
+    lock_id = 'store_league'
 
-            logger.info('Got {} leagues for [{}] {}'.format(
-                len(result[summoner_id]), region, summoner_id))
+    with advisory_lock(lock_id) as acquired:
+        if result != {}:
+            for summoner_id in result:
+                logger.debug('Reading leagues for summoner ID {}'.format(summoner_id))
+                for league in result[summoner_id]:
+                    League.objects.create_or_update_league(league, region)
+
+                # TODO: This is misleading since we can block updates in update_league
+                # based on last_update.
+                logger.info('Stored {} leagues for [{}] {}'.format(len(result[summoner_id]),
+                                                                   region, summoner_id))
 
 
 @app.task
@@ -244,4 +255,4 @@ def store_get_match(result):
     if result != {}:
         created = MatchDetail.objects.create_match(result)
 
-        logger.info('Got match {}'.format(created))
+        logger.info('Stored match {}'.format(created))
