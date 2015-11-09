@@ -12,7 +12,8 @@ from lol_stats2.celery import (app,
                                riot_api,
                                store_get_match,
                                store_get_summoners,
-                               store_get_league)
+                               store_get_league,
+                               store_static_get_summoner_spell_list)
 from matches.models import MatchDetail
 from summoners.models import Summoner
 
@@ -68,7 +69,7 @@ class RiotAPI:
                   'data_by_id': data_by_id,
                   'spell_data': spell_data}
 
-        return kwargs
+        return chain(riot_api.s(kwargs), store_static_get_summoner_spell_list.s())()
 
     # Unused, see Game vs MatchDetail (this is unranked matches)
     @staticmethod
