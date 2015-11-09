@@ -21,6 +21,4 @@ class SpellManager:
     @staticmethod
     def get_all():
         logger.debug()
-        chain(RiotAPI.static_get_summoner_spell_list(),
-              riot_api.s(),
-              store_static_get_summoner_spell_list.s())()
+        return RiotAPI.static_get_summoner_spell_list()
