@@ -6,6 +6,7 @@ from django.db import models
 from django.db import transaction
 
 from summoners.models import Summoner
+from utils.functions import underscore_dict
 
 logger = logging.getLogger(__name__)
 
@@ -27,20 +28,21 @@ class LeagueManager(models.Manager):
         league = self.create(region=region, queue=attrs['queue'],
                              name=attrs['name'], tier=attrs['tier'])
         logger.debug(league)
-        league.leagueentry_set.create_entries(attrs)
+        league.leagueentry_set.create_entries(attrs, league.id)
 
         return league
 
-    # TODO: Allow timedelta to be passedi n.
+    # TODO: Allow timedelta to be passed in.
     def update_league(self, league, attrs, region):
-        if league.last_update < (datetime.now(tz=pytz.utc) - timedelta(hours=2)):
+        if league.last_update < (datetime.now(tz=pytz.utc) - timedelta(seconds=1)):
             logger.debug(league)
             league.last_update = datetime.now(tz=pytz.utc)
             league.save()
             league.leagueentry_set.all().delete()
-            league.leagueentry_set.create_entries(attrs)
+            league.leagueentry_set.create_entries(attrs, league.id)
 
             return league
+
 
 class League(models.Model):
     """
@@ -63,71 +65,42 @@ class League(models.Model):
     class Meta:
         unique_together = ('region', 'queue', 'name', 'tier')
 
+
 class LeagueEntryManager(models.Manager):
-    def create_entry(self, attrs):
-        """
-        Create an entry from a dict of format LeagueEntry DTO.
-
-        If the Summoner that this entry refers to is in the database,
-        their last_leagues_update field will be updated.
-
-        While Summoners may belong to multiple leagues, and this only refers
-        to a single league's entry, all leagues are fetched simultaneously,
-        so this is a safe way to trigger updates on last_leagues_update.
-        """
-        if 'miniSeries' in attrs:
-            entry = self.create(division=attrs['division'],
-                                is_fresh_blood=attrs['isFreshBlood'],
-                                is_hot_streak=attrs['isHotStreak'],
-                                is_inactive=attrs['isInactive'],
-                                is_veteran=attrs['isVeteran'],
-                                league_points=attrs['leaguePoints'],
-                                player_or_team_id=attrs['playerOrTeamId'],
-                                player_or_team_name=attrs['playerOrTeamName'],
-                                wins=attrs['wins'],
-                                losses=attrs['losses'],
-                                series_losses=attrs['miniSeries']['losses'],
-                                series_progress=attrs['miniSeries']['progress'],
-                                series_target=attrs['miniSeries']['target'],
-                                series_wins=attrs['miniSeries']['wins'])
+    @staticmethod
+    def _flatten_entry_if_series(entry):
+        if 'mini_series' not in entry:
+            return entry
         else:
-            entry = self.create(division=attrs['division'],
-                                is_fresh_blood=attrs['isFreshBlood'],
-                                is_hot_streak=attrs['isHotStreak'],
-                                is_inactive=attrs['isInactive'],
-                                is_veteran=attrs['isVeteran'],
-                                league_points=attrs['leaguePoints'],
-                                player_or_team_id=attrs['playerOrTeamId'],
-                                player_or_team_name=attrs['playerOrTeamName'],
-                                wins=attrs['wins'],
-                                losses=attrs['losses'])
+            flattened = entry.copy()
 
-        # If this entry isn't for a team, then update the Summoner's
-        # last_leagues_update field.
+            # We rename the keys in mini_series so they don't conflict w/extant keys.
+            renamed_series = entry['mini_series']
+            renamed_series['series_losses'] = renamed_series.pop('losses')
+            renamed_series['series_wins'] = renamed_series.pop('wins')
+            renamed_series['series_progress'] = renamed_series.pop('progress')
+            renamed_series['series_target'] = renamed_series.pop('target')
 
+            # Merge the series in and remove the original that has since been renamed.
+            flattened.update(renamed_series)
+            flattened.pop('mini_series')
 
-        # Removed in lieu of updating summoner's last_leagues_update during get_league.
-        # TODO: To ensure the Summoner's last_leagues_update field is not written to
-        # multiple times in a short period of time (e.g. when the summoner is in
-        # multiple leagues) a time distance check may be performed.
-        #
-        # if 'TEAM' not in attrs['playerOrTeamId']:
-        #     summoner_query = Summoner.objects.filter(
-        #         region=entry.league.region.upper(),
-        #         summoner_id=int(attrs['playerOrTeamId']))
-        #
-        #     if summoner_query.exists():
-        #         summoner_query.update(last_leagues_update=datetime.now(tz=pytz.utc))
-        #         logger.info('updated last_leagues_update for {}'
-        #                     .format(summoner_query.get()))
+            return flattened
 
-        # logger.debug(entry)
+    # TODO: Is there another way to get league_id given that we call this from league.leagueentry_set?
+    def create_entries(self, attrs, league_id):
+        entries = attrs['entries']
+        underscore_entries = [entry for entry in map(underscore_dict, entries)]
+        flattened_entries = [entry for entry in map(self._flatten_entry_if_series, underscore_entries)]
 
-        return entry
+        for entry in flattened_entries:
+            entry['league_id'] = league_id
 
-    def create_entries(self, attrs):
-        for entry in attrs['entries']:
-            self.create_entry(entry)
+        entry_objs = [LeagueEntry(**kwargs) for kwargs in flattened_entries]
+        created = self.bulk_create(entry_objs)
+
+        logger.info('Bulk created: {}'.format(created))
+
 
 class LeagueEntry(models.Model):
     """

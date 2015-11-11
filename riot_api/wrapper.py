@@ -92,7 +92,7 @@ class RiotAPI:
 
     # TODO: Set a reasonable default ttl.
     @staticmethod
-    def get_league(summoner_ids, region=None, ttl=timedelta(minutes=1)):
+    def get_league(summoner_ids, region=None, ttl=timedelta(seconds=1)):
         """
         Gets and stores leagues for the given summoner IDs in the given
         region.
