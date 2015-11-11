@@ -175,11 +175,16 @@ def store_static_get_summoner_spell_list(result):
     """
     lock_id = 'store_spells'
 
+    # Convert values to match model fields.
+    for value in result['data'].values():
+        value['spell_id'] = value.pop('id')
+        value['summoner_level'] = value.pop('summonerLevel')
+
+    spell_objs = list(map(lambda kwargs: SummonerSpell(**kwargs), result['data'].values()))
+
     with advisory_lock(lock_id) as acquired:
         SummonerSpell.objects.all().delete()
-
-        for attrs in result['data'].values():
-            SummonerSpell.objects.create_spell(attrs)
+        SummonerSpell.objects.bulk_create(spell_objs)
 
     logger.info('Stored {} summoner spells'.format(len(result['data'])))
 
