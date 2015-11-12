@@ -3,22 +3,110 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>Show</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  <!-- js-cookie for getting CSRF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.0.4/js.cookie.min.js"></script>
 </head>
 <body>
+<div id="loading" style="display:none">
+  LOADING
+</div>
 {% if summoner %}
   <ul>
   <li>{{ summoner.summoner_id }}</li>
-  <li>{{ summoner.name }}</li>
+  <li><span id="name">{{ summoner.name }}</span></li>
   <li>{{ summoner.region }}</li>
   <li>{{ summoner.summoner_level }}</li>
   </ul>
+    <h2>Recent Matches</h2>
+    {% for match in recent_matches %}
+        <div>
+        Match ID: {{ match.match_id }}<br>
+        Match Date: {{ match.match_date }}<br>
+        </div>
+        <hr>
+    {% endfor %}
 {% else %}
   Summoner not found.
 {% endif %}
-<form action="/refresh/" method="post">
-  {% csrf_token %}
-  <input type="hidden" name="name" value="{{ name }}">
-  <input type="submit" value="Refresh">
-</form>
+<input type="button" value="Refresh" id="refresh">
+
+<script type="application/javascript">
+    var task_ids = [];
+
+    $(function() {
+      var csrftoken = Cookies.get('csrftoken');
+
+      function csrfSafeMethod(method) {
+      // these HTTP methods do not require CSRF protection
+      return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    }
+
+    $.ajaxSetup({
+      beforeSend: function(xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader("X-CSRFToken", csrftoken);
+          }
+      }
+    });
+  });
+
+  $("#refresh").click(function(e){
+    e.preventDefault();
+    var name = window.location.pathname.split('/');
+    name = name[name.length - 1];
+
+    $.ajax({
+      type: "POST",
+      url: "/refresh/",
+      data: {name: name},
+      success: function(resp){
+        console.log(resp);
+        task_ids = resp["task_ids"];
+      }
+    });
+    console.log('refresh request sent for ' + name);
+    waitOnJob();
+  });
+
+  var statusCheckInterval;
+
+  function waitOnJob(){
+    tasks_done = false;
+    showLoading();
+
+    statusCheckInterval = setInterval(checkStatus, 500);
+  }
+
+  function showLoading(){
+    $("#loading").show();
+  }
+
+  function hideLoading(){
+    $("#loading").hide();
+  }
+
+  var tasks_done = false;
+
+  function checkStatus(){
+    $.ajax({
+      type: "POST",
+      url: "/task_status/",
+      data: {task_ids: task_ids},
+      success: function(resp){
+        console.log(resp);
+        tasks_done = resp["success"];
+
+        if (tasks_done === true) {
+          clearInterval(statusCheckInterval);
+          hideLoading();
+        }
+      }
+    });
+  }
+
+
+
+</script>
 </body>
 </html>

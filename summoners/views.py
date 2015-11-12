@@ -48,7 +48,9 @@ def show(request, name):
         summoner = None
 
     return render(request, 'summoners/show.html',
-                  {'summoner': summoner, 'name': name})
+                  {'summoner': summoner,
+                   'name': name,
+                   'recent_matches': summoner.matches()[:20]})
 
 
 def refresh(request):
