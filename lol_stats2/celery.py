@@ -21,6 +21,7 @@ from riotwatcher.riotwatcher import (RiotWatcher,
                                      error_500,
                                      error_503)
 from django_pglocks import advisory_lock
+from django.conf import settings
 
 from summoners.models import Summoner
 from champions.models import Champion
@@ -29,12 +30,13 @@ from games.models import Game
 from leagues.models import League
 from matches.models import MatchDetail
 
+# Currently only used in the event of a 5xx HTTP response code from Riot's API.
+RIOT_API_RETRY_DELAY = 2
+
 logger = logging.getLogger(__name__)
 
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lol_stats2.settings.base')
-
-from django.conf import settings
 
 app = Celery('lol_stats2',
              broker='amqp://',
@@ -53,8 +55,8 @@ riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 
 # TODO: Refine parameters for retrying: read that new response header for when we can retry!
 # FIXME: Params
-@app.task(bind=True, ignore_result=False, rate_limit='.5/s', max_retries=3,
-          default_retry_delay=2)
+@app.task(bind=True, ignore_result=False, rate_limit='.8/s', max_retries=3,
+          default_retry_delay=RIOT_API_RETRY_DELAY)
 def riot_api(self, kwargs):
     """
     A rate-limited task that queries the Riot API using a RiotWatcher instance.
@@ -65,34 +67,47 @@ def riot_api(self, kwargs):
     500 req / 10 min
 
     Ideally, the limit we give Celery could be .8 req/sec, but testing has shown
-    that anything over .5 req/sec is prone to hitting HTTP 429 errors.
+    that this doesn't always work.
 
-    If an LoLException is thrown, automatically retries up to 3 times,
-    with a 2 second delay between each attempt.
+    This task will retry up to 3 times in the following cases:
+     -5xx error, retries in RIOT_API_RETRY_DELAY seconds.
+     -429 error, retries based on `Retry-After` header in response.
     """
-
     logger.debug('kwargs: {}, task ID: {}'.format(kwargs, self.request.id))
-    func = getattr(riot_watcher, kwargs.pop('method'))
+
+    func = getattr(riot_watcher, kwargs['method'])
 
     if 'region' in kwargs and kwargs['region'] is not None:
         kwargs['region'] = kwargs['region'].lower()
 
+    # Create a copy of kwargs w/o `method` to pass to `func`, as modifying the original
+    # `kwargs` breaks task retrying (as would occur if we exceed rate limit, etc).
+    non_method_kwargs = kwargs.copy()
+    non_method_kwargs.pop('method')
+
     # Note: Preventing exceptions from propagating hides them from flower.
     # Exceptions of type `retry` will however, be shown.
     try:
-        result = func(**kwargs)
+        result = func(**non_method_kwargs)
     except LoLException as e:
-        if e == error_500 or e == error_503:
-            logger.error('5xx error, retrying ({})'.format(e))
+        if e.error == error_404:
+            logger.info('404 error ({})'.format(e))
+        elif e.error == error_400:
+            logger.critical('400 error ({})'.format(e))
+        elif e.error == error_401:
+            logger.critical('401 error ({})'.format(e))
+        elif e.error == error_500 or e == error_503:
+            logger.error('5xx error, retrying in {} ({})'.format(RIOT_API_RETRY_DELAY, e))
             raise self.retry(exc=e)
-        elif e == error_429:
-            logger.error('429 error, retrying ({})'.format(e))
-            raise self.retry(exc=e)
+        elif e.error == error_429:
+            retry_after = int(e.headers['Retry-After'])
+            logger.critical('429 error, retrying in {} ({})'.format(retry_after, e))
+            raise self.retry(exc=e, countdown=retry_after)
         else:
-            logger.error('Unexpected error, retrying ({})'.format(e))
+            logger.critical('Unhandled LoLException (did riotwatcher get updated?) ({}: {})'.format(e, e.__dict__))
         result = {}
     except:
-        logger.error('Unhandled exception', exc_info=True)
+        logger.critical('Unhandled exception', exc_info=True)
         raise
 
     return result
@@ -113,8 +128,6 @@ def store_get_summoners(result, region):
     region = region.upper()
     updated = 0
     created = 0
-
-    logger.debug(Summoner.objects.all())
 
     if result:
         for entry in result:
@@ -163,6 +176,7 @@ def store_static_get_champion_list(result):
     logger.info('Stored {} champions'.format(len(result['data'])))
 
     return created
+
 
 # TODO: In testing, when this got ran repeatedly in a short period of time,
 # it looks like they can be run in parallel (we don't want that) as shown by
