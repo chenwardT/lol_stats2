@@ -28,7 +28,7 @@ class LeagueManager(models.Manager):
         league = self.create(region=region, queue=attrs['queue'],
                              name=attrs['name'], tier=attrs['tier'])
         logger.debug(league)
-        league.leagueentry_set.create_entries(attrs, league.id)
+        league.leagueentry_set.create_entries(attrs)
 
         return league
 
@@ -39,7 +39,7 @@ class LeagueManager(models.Manager):
             league.last_update = datetime.now(tz=pytz.utc)
             league.save()
             league.leagueentry_set.all().delete()
-            league.leagueentry_set.create_entries(attrs, league.id)
+            league.leagueentry_set.create_entries(attrs)
 
             return league
 
@@ -87,14 +87,14 @@ class LeagueEntryManager(models.Manager):
 
             return flattened
 
-    # TODO: Is there another way to get league_id given that we call this from league.leagueentry_set?
-    def create_entries(self, attrs, league_id):
+    def create_entries(self, attrs):
         entries = attrs['entries']
         underscore_entries = [entry for entry in map(underscore_dict, entries)]
         flattened_entries = [entry for entry in map(self._flatten_entry_if_series, underscore_entries)]
 
+        # `instance` contains the League object that we called `leagueentry_set` on.
         for entry in flattened_entries:
-            entry['league_id'] = league_id
+            entry['league_id'] = self.instance.id
 
         entry_objs = [LeagueEntry(**kwargs) for kwargs in flattened_entries]
         created = self.bulk_create(entry_objs)
