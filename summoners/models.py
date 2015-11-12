@@ -7,8 +7,10 @@ from django.apps import apps
 
 logger = logging.getLogger(__name__)
 
+
 def standardize_name(name):
         return name.replace(' ', '').lower()
+
 
 class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
@@ -50,6 +52,7 @@ class SummonerManager(models.Manager):
 
     def is_known(self, summoner_id, region):
         return self.filter(summoner_id=summoner_id, region=region).exists()
+
 
 class Summoner(models.Model):
     """Maps to Riot API summoner DTO.
@@ -140,8 +143,13 @@ class Summoner(models.Model):
             return None
 
     def matches(self):
-        related_set = self.participantidentity_set.select_related('match_detail')
-        return [related.match_detail for related in related_set]
+        """
+        Returns a QuerySet containing this summoner's matches in reverse chronological order.
+        """
+        match_detail = apps.get_model('matches', 'MatchDetail')
+        pi_set = self.participantidentity_set.all()
+
+        return match_detail.objects.filter(participantidentity=pi_set).order_by('match_creation').reverse()
 
     class Meta:
         unique_together = ('summoner_id', 'region')
