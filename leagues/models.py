@@ -98,9 +98,9 @@ class LeagueEntryManager(models.Manager):
             entry['league_id'] = self.instance.id
 
         entry_objs = [LeagueEntry(**kwargs) for kwargs in flattened_entries]
-        created = self.bulk_create(entry_objs)
+        self.bulk_create(entry_objs)
 
-        logger.info('Bulk created: {}'.format(created))
+        logger.debug('Bulk created {} league entries'.format(len(flattened_entries)))
 
 
 class LeagueEntry(models.Model):
