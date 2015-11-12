@@ -10,9 +10,10 @@ from utils.functions import underscore_dict
 
 logger = logging.getLogger(__name__)
 
+
 class LeagueManager(models.Manager):
     def create_or_update_league(self, attrs, region):
-
+        region = region.upper()
         possibly_extant_league = self.filter(region=region,
                                              queue=attrs['queue'],
                                              name=attrs['name'],
