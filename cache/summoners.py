@@ -18,11 +18,23 @@ logger = logging.getLogger(__name__)
 
 class SingleSummoner:
     """
-    Contains methods required to maintain the front-end's summoner page.
+    Contains methods required to maintain the front end's summoner detail page.
 
-    Expected to receive region and either A) summoner_id or B) std_name.
+    Expected to receive region and either A) summoner_id or B) name.
+    The name is converted to the standardized name.
     A name is expected to be received when initialized by user actions
     (ex. a user searching for a summoner would be by region + name).
+
+    After initialization, the expected use is determining if the summoner
+    is known (stored in the DB).
+
+    If it is known, the page can be loaded w/whatever data we have on them.
+
+    If they are not known, then we have to perform a full query.
+
+    Additionally, a partial query can be performed by the user which refreshes
+    data using the region passed to __init__, but uses the summoner ID since
+    that will always refer to the same account.
     """
     _ALLOWED_REGIONS = ('BR', 'EUNE', 'EUW', 'KR', 'LAN', 'LAS', 'NA', 'OCE',
                         'TR', 'RU')
@@ -37,9 +49,9 @@ class SingleSummoner:
         # These attributes are only used to get the summoner instance
         # and should not be referenced after __init__ completes.
         # TODO: change from object scope to method scope?
-        self.std_name = name.lower().replace(' ','') if name else None
+        self.std_name = name.lower().replace(' ', '') if name else None
         self.summoner_id = summoner_id
-        self.region = region
+        self.region = region.upper()
         self.summoner = None
 
         logger.info('Summoner init started, name: {}, ID: {}, region: {}'.format(
@@ -59,26 +71,49 @@ class SingleSummoner:
 
         # If the summoner isn't already known, the first time we get it
         # will be via name, meaning we have a std_name to work with.
-        if not self._is_known():
-            logger.info('Summoner not known, querying Riot for: [{}] {}'
-                        .format(self.region, self.std_name))
-            task = RiotAPI.get_summoners(names=self.std_name, region=self.region)
-
-            # TODO: When invoked by ajax, must expose task ID to frontend
-            # so data fetching progress can be seen/acted upon, also
-            # remove synchronous behavior here.
-
-            # DEBUG - for console use
-            # Wait until result is stored.
-            while not task.successful():
-                print('.', end='', flush=True)
-                time.sleep(.5)
+        # if not self.is_known():
+        #     logger.info('Summoner not known, querying Riot for: [{}] {}'
+        #                 .format(self.region, self.std_name))
+        #     task = RiotAPI.get_summoners(names=self.std_name, region=self.region)
+        #
+        #     # TODO: When invoked by ajax, must expose task ID to frontend
+        #     # so data fetching progress can be seen/acted upon, also
+        #     # remove synchronous behavior here.
+        #
+        #     # DEBUG - for console use
+        #     # Wait until result is stored.
+        #     while not task.successful():
+        #         print('.', end='', flush=True)
+        #         time.sleep(.5)
 
         # DEBUG - for console use
-        print('Retrieved {}'.format(self._get_instance()))
-        logger.info('Summoner init complete, {}'.format(self._get_instance()))
+        # print('Retrieved {}'.format(self._get_instance()))
+        # logger.info('Summoner init complete, {}'.format(self._get_instance()))
 
-    def _is_known(self):
+    def first_time_query(self):
+        """
+        Synchronous query of Riot API for summoner that isn't known.
+        All tasks must finish before summoner detail page load.
+
+        If 404 response, then show "Summoner not found" page.
+        Else follow up with a full query of everything else and load summoner detail page.
+
+        Returns True if the summoner exists (and was fetched or updated), else False.
+        """
+        query_start = datetime.now()
+        result = self._query_summoner_by_name().get()
+
+        if result['created'] == 1 or result['updated'] == 1:
+            self._get_instance()
+            self.full_query()
+
+            logger.info('complete: found summoner and got data ({})'.format(datetime.now() - query_start))
+            return True
+        else:
+            logger.info('complete: did not find summoner ({})'.format(datetime.now() - query_start))
+            return False
+
+    def is_known(self):
         """
         Checks for the existence of the summoner in the database.
 
@@ -92,11 +127,11 @@ class SingleSummoner:
             return Summoner.objects.filter(std_name=self.std_name,
                                            region=self.region).exists()
 
-    def _get_summoner_by_name(self):
-        RiotAPI.get_summoners(names=self.std_name, region=self.region)
+    def _query_summoner_by_name(self):
+        return RiotAPI.get_summoners(names=self.std_name, region=self.region)
 
-    def _get_summoner_by_id(self):
-        RiotAPI.get_summoners(ids=self.summoner_id, region=self.region)
+    def _query_summoner_by_id(self):
+        return RiotAPI.get_summoners(ids=self.summoner_id, region=self.region)
 
     def _get_instance(self):
         """
@@ -122,11 +157,11 @@ class SingleSummoner:
 
         return self.summoner
 
-    def _get_match_history(self):
+    def _query_match_history(self):
         return RiotAPI.get_match_list(summoner_id=self.summoner.summoner_id,
                                       region=self.summoner.region)
 
-    def _get_league(self):
+    def _query_league(self):
         return RiotAPI.get_league(summoner_ids=self.summoner.summoner_id, region=self.summoner.region)
 
     # # TODO: Consider calling self.summoner.refresh_from_db().
@@ -201,13 +236,21 @@ class SingleSummoner:
         -ranked stats of this season
         -ranked stats of last season
         """
-        logger.info('started on [{}] {}.'.format(self.region, self.std_name))
-        match_job = self._get_match_history()
-        league_job = self._get_league()
+        logger.info('started on [{}] {}'.format(self.region, self.std_name))
+        match_job = self._query_match_history()
+        league_job = self._query_league()
 
         # This gets returned to the frontend. The frontend shows "Loading" until it gets a
         # positive response from multi_task_status. Then it can load the new data!
         return coalesce_task_ids([match_job, league_job])
+
+    def blocking_full_query(self):
+        logger.info('started on [{}] {}'.format(self.region, self.std_name))
+
+        self._query_match_history().get()
+        self._query_league().get()
+
+        logger.info('complete')
 
     def partial_query(self):
         """
@@ -224,4 +267,4 @@ class SingleSummoner:
         with transaction.atomic():
             if not LeagueEntry.objects.filter(player_or_team_id=self.summoner.summoner_id,
                                               league__region=self.summoner.region).exists():
-                self._get_league()
+                self._query_league()
