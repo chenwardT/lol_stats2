@@ -241,7 +241,7 @@ class RiotAPI:
     # TODO: The region could be passed along with the match IDs so the caller of
     # the chain doesn't have to.
     @app.task
-    def get_matches_from_ids(result, region, max_matches=10, recent_first=False):
+    def get_matches_from_ids(result, region, max_matches=10, recent_first=True):
         """
         Parses the result dict for match IDs, compares them to stored matches,
         and returns a list of match IDs that do not have corresponding matches
