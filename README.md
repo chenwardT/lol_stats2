@@ -66,10 +66,10 @@ You can follow suit for each virtualenv (production, staging, etc).
 Executing `manage.py runserver` should now reflect the environment-specific settings
 when starting up.
 
-You should configure your SECRET_KEY and RIOT_API_KEY environment variables via 
+You should configure Django's `SECRET_KEY` and RiotWatcher's `RIOT_API_KEY` environment variables via 
 "postactivate" and "predeactivate" scripts.
 
-Additionally, an environment variable, `CELERY_ALWAYS_EAGER`, should be set in your testing
+Additionally, `CELERY_ALWAYS_EAGER`, should be set in your testing
  virtualenv, otherwise Celery tasks won't be run against the test database! The value of the
  variable does not matter, but it must exist.
 
