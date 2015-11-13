@@ -280,5 +280,7 @@ def store_get_match(result):
     """
     if result != {}:
         created = MatchDetail.objects.create_match(result)
-
         logger.info('Stored match {}'.format(created))
+        return True
+    else:
+        return False
