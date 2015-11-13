@@ -47,7 +47,7 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
             for t in attrs['teams']:
                 match.team_set.create_team(t)
 
-        logging.info('Created match: {} {}'.format(attrs['region'],
+        logging.info('Created match: [{}] {}'.format(attrs['region'],
                                                    attrs['matchId']))
         return match
 
