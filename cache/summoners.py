@@ -105,7 +105,7 @@ class SingleSummoner:
 
         if result['created'] == 1 or result['updated'] == 1:
             self._get_instance()
-            self.full_query()
+            self.blocking_full_query()
 
             logger.info('complete: found summoner and got data ({})'.format(datetime.now() - query_start))
             return True
