@@ -125,9 +125,9 @@ def store_get_summoners(result, region):
     """
     Callback that stores the result of RiotWatcher get_summoners calls.
     """
+    logger.debug(result)
     region = region.upper()
-    updated = 0
-    created = 0
+    storage_result = {'created': 0, 'updated': 0}
 
     if result:
         for entry in result:
@@ -139,16 +139,20 @@ def store_get_summoners(result, region):
                 summoner = potentially_extant_summoner.get()
                 logger.debug('potentially_extant_summoner: {}'.format(summoner.__dict__))
                 summoner.update(region, result[entry])
-                updated += 1
+                storage_result['updated'] += 1
             else:
                 Summoner.objects.create_summoner(region, result[entry])
-                created += 1
+                storage_result['created'] += 1
 
-    if updated == 0 and created == 0:
-        logger.warning('No summoners updated or created!')
+    if storage_result['created'] == 0 and storage_result['updated'] == 0:
+        logger.warning('No summoners created or updated!')
     else:
-        logging.info('Stored {} summoners, {} updated, {} created'.format(
-            updated + created, updated, created))
+        logging.info('Stored {} summoners: {} created, {} updated'.format(
+            storage_result['created'] + storage_result['updated'],
+            storage_result['created'],
+            storage_result['updated']))
+
+    return storage_result
 
 
 @app.task(ignore_result=True)
