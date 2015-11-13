@@ -262,6 +262,9 @@ def store_get_league(result, region):
                 # based on last_update.
                 logger.info('Stored {} leagues for [{}] {}'.format(len(result[summoner_id]),
                                                                    region, summoner_id))
+            return True
+        else:
+            return False
 
 
 @app.task
