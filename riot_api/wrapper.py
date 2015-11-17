@@ -263,12 +263,12 @@ class RiotAPI:
         if 'matches' in result:
             logger.debug('{} matches in result'.format(len(result['matches'])))
 
-            # Get max_matches from the end or beginning.
+            # Get max_matches from the beginning or end.
             if max_matches:
                 if recent_first:
-                    result['matches'] = result['matches'][-max_matches:]
-                else:
                     result['matches'] = result['matches'][:max_matches]
+                else:
+                    result['matches'] = result['matches'][-max_matches:]
 
             # Skip the matches that are already stored in the DB.
             result_ids = set([match['matchId'] for match in result['matches']])
