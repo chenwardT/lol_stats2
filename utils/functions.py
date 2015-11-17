@@ -82,3 +82,7 @@ def coalesce_task_ids(results):
             task_ids.append(task.id)
 
     return task_ids
+
+
+def standardize_name(name):
+        return name.replace(' ', '').lower()

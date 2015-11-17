@@ -2,20 +2,18 @@ import logging
 from datetime import timedelta, datetime
 
 import pytz
-from django.db import models, transaction
 from django.apps import apps
+from django.db import models, transaction
+
+from utils.functions import standardize_name
 
 logger = logging.getLogger(__name__)
-
-
-def standardize_name(name):
-        return name.replace(' ', '').lower()
 
 
 class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
         region = region.upper()
-        logger.debug("region: {}, attrs: {}".format(region, attrs))
+        # logger.debug("region: {}, attrs: {}".format(region, attrs))
 
         return self.create(summoner_id=attrs['id'],
                            name=attrs['name'],
@@ -26,7 +24,7 @@ class SummonerManager(models.Manager):
                            region=region)
 
     def create_summoner_from_match(self, region, attrs):
-        logger.debug("region: {}, attrs: {}".format(region, attrs))
+        # logger.debug("region: {}, attrs: {}".format(region, attrs))
 
         return self.create(summoner_id=attrs['summonerId'],
                            profile_icon_id=attrs['profileIcon'],
@@ -39,7 +37,7 @@ class SummonerManager(models.Manager):
         summoner_id = attrs['summonerId']
         region = region.upper()
 
-        logger.debug('region: {}, attrs: {}'.format(region, attrs))
+        # logger.debug('region: {}, attrs: {}'.format(region, attrs))
 
         with transaction.atomic():
             if self.is_known(summoner_id, region):
@@ -91,7 +89,7 @@ class Summoner(models.Model):
     objects = SummonerManager()
 
     def update(self, region, attrs):
-        logger.debug('region: {}, attrs: {}'.format(region, attrs))
+        # logger.debug('region: {}, attrs: {}'.format(region, attrs))
 
         self.summoner_id = attrs['id']
         self.name = attrs['name']
