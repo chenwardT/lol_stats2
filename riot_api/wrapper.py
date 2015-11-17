@@ -157,8 +157,8 @@ class RiotAPI:
     # matches and that occurred since the last fetch (what are the odds of this case?)
     @staticmethod
     def get_match_list(summoner_id, region=None, champion_ids=None, ranked_queues='RANKED_SOLO_5x5',
-                       seasons=None, begin_time=None, end_time=None, begin_index=None,
-                       end_index=None, max_matches=10):
+                       season=None, begin_time=None, end_time=None, begin_index=None,
+                       end_index=None, max_matches=7):
         """
         Gets all matches that satisfy the filters (args) for the specified summoner ID.
 
@@ -179,7 +179,7 @@ class RiotAPI:
                   'region': region,
                   'champion_ids': champion_ids,
                   'ranked_queues': ranked_queues,
-                  'seasons': seasons,
+                  'season': season,
                   'begin_time': begin_time,
                   'end_time': end_time,
                   'begin_index': begin_index,
@@ -215,7 +215,8 @@ class RiotAPI:
 
             # TODO: execute chain here vs inside group below?
             get_ids_chain = chain(riot_api.s(kwargs),
-                                  RiotAPI.get_matches_from_ids.s(region=region))
+                                  RiotAPI.get_matches_from_ids.s(region=region,
+                                                                 max_matches=max_matches))
 
             return group(chain(RiotAPI.get_match.s(match_id=match_id, region=region),
                                riot_api.s(),

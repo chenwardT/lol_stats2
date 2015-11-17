@@ -9,9 +9,8 @@ Alternatively, use workers.sh.
 
 import os
 import logging
-import time
 
-from celery import Celery, chain, group
+from celery import Celery
 from riotwatcher.riotwatcher import (RiotWatcher,
                                      LoLException,
                                      error_400,
@@ -55,7 +54,7 @@ riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 
 # TODO: Refine parameters for retrying: read that new response header for when we can retry!
 # FIXME: Params
-@app.task(bind=True, ignore_result=False, rate_limit='.8/s', max_retries=3,
+@app.task(bind=True, ignore_result=False, rate_limit='10/s', max_retries=3,
           default_retry_delay=RIOT_API_RETRY_DELAY)
 def riot_api(self, kwargs):
     """
@@ -90,16 +89,16 @@ def riot_api(self, kwargs):
     try:
         result = func(**non_method_kwargs)
     except LoLException as e:
-        if e.error == error_404:
+        if e == error_404:
             logger.info('404 error ({})'.format(e))
-        elif e.error == error_400:
+        elif e == error_400:
             logger.critical('400 error ({})'.format(e))
-        elif e.error == error_401:
+        elif e == error_401:
             logger.critical('401 error ({})'.format(e))
-        elif e.error == error_500 or e == error_503:
+        elif e == error_500 or e == error_503:
             logger.error('5xx error, retrying in {} ({})'.format(RIOT_API_RETRY_DELAY, e))
             raise self.retry(exc=e)
-        elif e.error == error_429:
+        elif e == error_429:
             retry_after = int(e.headers['Retry-After'])
             logger.critical('429 error, retrying in {} ({})'.format(retry_after, e))
             raise self.retry(exc=e, countdown=retry_after)
