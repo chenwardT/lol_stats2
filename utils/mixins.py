@@ -23,17 +23,18 @@ class CreateableFromAttrsMixin(object):
     """
     Mixin for model manager classes.
     """
-    def init_dict(self, attrs):
+    def init_dict(self, kwargs):
         """
-        Return an initialization dict that contains just the key-value
-        pairs that are relevant to this model.
+        Accepts kwargs in snakeCase (as presented by Riot's API) and returns an
+        initialization dict that contains just the fields and values that are relevant
+        to this model.
         """
         model_fields = [f for f in self.model.data_fields()]
-        underscore_attrs = underscore_dict(attrs)
+        underscore_kwargs = underscore_dict(kwargs)
         dct = {}
 
-        for k in model_fields:
-            dct[k] = underscore_attrs[k]
+        for field in model_fields:
+            dct[field] = underscore_kwargs[field]
 
         return dct
 
