@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import JsonResponse
 from rest_framework import viewsets
 from rest_framework.pagination import PageNumberPagination
 
-from .models import Summoner, standardize_name
+from .models import Summoner
 from .serializers import SummonerSerializer
 from .forms import SearchForm
 from cache.summoners import SingleSummoner
@@ -38,19 +39,24 @@ def search(request):
 
     return render(request, 'summoners/search.html', {'form': form})
 
-
+@ensure_csrf_cookie
 def show(request, name):
-    q = Summoner.objects.filter(std_name=standardize_name(name), region='NA')
+    ss = SingleSummoner(name, region='NA')
 
-    if q.exists():
-        summoner = q.get()
+    if ss.is_known():
+        ss._get_instance()
+        return render(request, 'summoners/show.html',
+                      {'summoner': ss.summoner,
+                       'name': ss.summoner.name,
+                       'recent_matches': ss.summoner.matches()[:20]})
     else:
-        summoner = None
-
-    return render(request, 'summoners/show.html',
-                  {'summoner': summoner,
-                   'name': name,
-                   'recent_matches': summoner.matches()[:20]})
+        if ss.first_time_query():
+            return render(request, 'summoners/show.html',
+                      {'summoner': ss.summoner,
+                       'name': ss.summoner.name,
+                       'recent_matches': ss.summoner.matches()[:20]})
+        else:
+            return render(request, 'summoners/show.html')
 
 
 def refresh(request):
@@ -58,6 +64,7 @@ def refresh(request):
         name = request.POST['name']
 
         ss = SingleSummoner(name=name, region='NA')
+        ss._get_instance()
         task_ids = ss.full_query()
 
         return JsonResponse({'task_ids': task_ids})
