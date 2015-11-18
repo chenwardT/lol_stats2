@@ -155,6 +155,7 @@ class RiotAPI:
     #
     # This stands in contrast to us getting 5 matches from before the presently known
     # matches and that occurred since the last fetch (what are the odds of this case?)
+    # TODO: Consider removal of all ranked_queues options besides solo queue.
     @staticmethod
     def get_match_list(summoner_id, region=None, champion_ids=None, ranked_queues='RANKED_SOLO_5x5',
                        season=None, begin_time=None, end_time=None, begin_index=None,
@@ -186,13 +187,11 @@ class RiotAPI:
                   'end_index': end_index}
 
         if ranked_queues not in _ALLOWED_QUEUES:
-            # TODO: Factor out these msgs.
-            logger.error('Unsupported value for "ranked_queues": {};'
+            error_msg = ('Unsupported value for "ranked_queues": {}; '
                          'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
                          .format(ranked_queues))
-            raise ValueError('Unsupported value for "ranked_queues": {};'
-                             'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
-                             .format(ranked_queues))
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         else:
             summoner_query = Summoner.objects.filter(region=region,
                                                      summoner_id=summoner_id)
