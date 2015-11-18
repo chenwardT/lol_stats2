@@ -209,8 +209,7 @@ class TeamManager(CreateableFromAttrsMixin, models.Manager):
         team = self.create(**self.init_dict(attrs))
 
         if 'bans' in attrs:
-            for b in attrs['bans']:
-                team.bannedchampion_set.create_banned_champion(b)
+            team.bannedchampion_set.bulk_create_banned_champions(attrs['bans'])
 
         return team
 
@@ -341,8 +340,19 @@ class Rune(IterableDataFieldsMixin, models.Model):
 class BannedChampionManager(CreateableFromAttrsMixin, models.Manager):
     def create_banned_champion(self, attrs):
         banned_champion = self.create(**self.init_dict(attrs))
-
         return banned_champion
+
+    def bulk_create_banned_champions(self, bans):
+        """
+        Accepts a list of kwargs for bans in snakeCase and bulk inserts them.
+        """
+        banned_champion_objs = [BannedChampion(**self.init_dict(kwargs)) for kwargs in bans]
+
+        for obj in banned_champion_objs:
+            obj.team_id = self.instance.id
+
+        self.bulk_create(banned_champion_objs)
+        logger.debug('Bulk created {} bans'.format(len(bans)))
 
 
 class BannedChampion(IterableDataFieldsMixin, models.Model):
