@@ -149,6 +149,20 @@ class Summoner(models.Model):
 
         return match_detail.objects.filter(participantidentity=pi_set).order_by('match_creation').reverse()
 
+    def league(self):
+        """
+        Returns this summoner's solo queue league.
+        """
+        return self.league_entry().league
+
+    def league_entry(self):
+        """
+        Returns this summoner's solo queue league entry.
+        """
+        league_entry = apps.get_model('leagues', 'LeagueEntry')
+        return league_entry.objects.filter(league__region=self.region, league__queue='RANKED_SOLO_5x5')\
+            .get(player_or_team_id=self.summoner_id)
+
     class Meta:
         unique_together = ('summoner_id', 'region')
         index_together = ('summoner_id', 'region')
