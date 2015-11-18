@@ -89,8 +89,10 @@ class Summoner(models.Model):
     objects = SummonerManager()
 
     def update(self, region, attrs):
-        # logger.debug('region: {}, attrs: {}'.format(region, attrs))
-
+        """
+        Update this summoner's fields completely, as would occur when directly
+        querying this summoner from Riot's API.
+        """
         self.summoner_id = attrs['id']
         self.name = attrs['name']
         self.std_name = standardize_name(attrs['name'])
@@ -101,8 +103,9 @@ class Summoner(models.Model):
         self.save()
 
     def update_from_match(self, attrs):
-        logger.debug(attrs)
-
+        """
+        Updates this summoner's fields based on what is available from a match response.
+        """
         self.profile_icon_id = attrs['profileIcon']
         self.name = attrs['summonerName']
         self.std_name = standardize_name(attrs['summonerName'])
@@ -128,6 +131,10 @@ class Summoner(models.Model):
                                 [field for field in to_check])
 
     def most_recent_match_date(self):
+        """
+        Returns a datetime representation of this summoner's most recently played match that
+        is stored, or None if no matches are stored for this summoner.
+        """
         match_model = apps.get_model('matches.MatchDetail')
         match_date = match_model.objects\
             .filter(participantidentity__summoner__id=self.id)\
