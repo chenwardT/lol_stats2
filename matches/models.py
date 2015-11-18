@@ -41,9 +41,8 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
             for p in attrs['participants']:
                 match.participant_set.create_participant(p)
 
-            for pi in attrs['participantIdentities']:
-                match.participantidentity_set.create_participant_identity(pi)
-
+            match.participantidentity_set.bulk_create_participant_identities(attrs['participantIdentities'])
+            
             for t in attrs['teams']:
                 match.team_set.create_team(t)
 
@@ -185,6 +184,30 @@ class ParticipantIdentityManager(CreateableFromAttrsMixin, models.Manager):
         participant_identity.save()
 
         return participant_identity
+
+    def bulk_create_participant_identities(self, participant_identities):
+        """
+        Accepts a list of kwargs for participant identities in snakeCase, creates
+        ParticipantIdentity objects based on the kwargs, associates the summoner FK of each
+        with a summoner that is created or updated based on the inner `player` dict in each
+        participant identity dict, and then bulk inserts all of them.
+        """
+        pi_objs = []
+        player_kwargs = []
+
+        for kwargs in participant_identities:
+            pi_obj = ParticipantIdentity(**self.init_dict(kwargs))
+            pi_obj.match_detail_id = self.instance.id
+            pi_objs.append(pi_obj)
+            player_kwargs.append(kwargs['player'])
+
+        # Use enumerate to ensure we match up PI objects with the associated player dicts.
+        for idx, obj in enumerate(pi_objs):
+            obj.summoner = Summoner.objects.create_or_update_summoner_from_match(
+                obj.match_detail.region, player_kwargs[idx])
+
+        self.bulk_create(pi_objs)
+        logger.debug('Bulk created {} participant identities'.format(len(participant_identities)))
 
 
 class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
