@@ -41,6 +41,8 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
             for p in attrs['participants']:
                 match.participant_set.create_participant(p)
 
+            # See TODO for this method.
+            # match.participant_set.bulk_create_participants(attrs['participants'])
             match.participantidentity_set.bulk_create_participant_identities(attrs['participantIdentities'])
             match.team_set.bulk_create_teams(attrs['teams'])
 
@@ -86,6 +88,13 @@ class ParticipantManager(ParticipantFromAttrsMixin, models.Manager):
         participant.participanttimeline_set.create_participant_timeline(attrs['timeline'])
 
         return participant
+
+    # TODO: Participant creation involves creating mastery and rune sets, which in turn
+    # need a participant_id to associate themselves with, which isn't created until the
+    # Participant object is saved, so we can't bulk create these in the same way as the
+    # other models.
+    # def bulk_create_participants(self, participants):
+    #     pass
 
 
 class Participant(IterableDataFieldsMixin, models.Model):
@@ -303,6 +312,7 @@ class MasteryManager(CreateableFromAttrsMixin, models.Manager):
         logger.debug('Bulk created {} masteries'.format(len(masteries)))
 
 
+# TODO: These fields could probably be Integer instead of BigInteger.
 class Mastery(IterableDataFieldsMixin, models.Model):
     mastery_id = models.BigIntegerField()
     rank = models.BigIntegerField()
