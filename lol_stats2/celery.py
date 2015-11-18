@@ -54,7 +54,7 @@ riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 
 # TODO: Refine parameters for retrying: read that new response header for when we can retry!
 # FIXME: Params
-@app.task(bind=True, ignore_result=False, rate_limit='10/s', max_retries=3,
+@app.task(bind=True, ignore_result=False, rate_limit='.8/s', max_retries=3,
           default_retry_delay=RIOT_API_RETRY_DELAY)
 def riot_api(self, kwargs):
     """
@@ -279,7 +279,7 @@ def store_get_match(result):
     """
     if result != {}:
         created = MatchDetail.objects.create_match(result)
-        logger.info('Stored match {}'.format(created))
+        logger.info('Stored match {} (create time: {})'.format(created, created.match_date()))
         return True
     else:
         return False
