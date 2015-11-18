@@ -82,12 +82,10 @@ class ParticipantManager(ParticipantFromAttrsMixin, models.Manager):
         participant = self.create(**self.init_dict(attrs))
 
         if 'masteries' in attrs:
-            for m in attrs['masteries']:
-                participant.mastery_set.create_mastery(m)
+            participant.mastery_set.bulk_create_masteries(attrs['masteries'])
 
         if 'runes' in attrs:
-            for r in attrs['runes']:
-                participant.rune_set.create_rune(r)
+            participant.rune_set.bulk_create_runes(attrs['runes'])
 
         participant.participanttimeline_set.create_participant_timeline(attrs['timeline'])
 
@@ -257,6 +255,18 @@ class MasteryManager(CreateableFromAttrsMixin, models.Manager):
 
         return mastery
 
+    def bulk_create_masteries(self, masteries):
+        """
+        Accepts a list of kwargs for masteries in snakeCase and bulk inserts them.
+        """
+        mastery_objs = [Mastery(**self.init_dict(kwargs)) for kwargs in masteries]
+
+        for obj in mastery_objs:
+            obj.participant_id = self.instance.id
+
+        self.bulk_create(mastery_objs)
+        logger.debug('Bulk created {} masteries'.format(len(masteries)))
+
 
 class Mastery(IterableDataFieldsMixin, models.Model):
     mastery_id = models.BigIntegerField()
@@ -323,6 +333,18 @@ class RuneManager(CreateableFromAttrsMixin, models.Manager):
         rune = self.create(**self.init_dict(attrs))
 
         return rune
+
+    def bulk_create_runes(self, runes):
+        """
+        Accepts a list of kwargs for runes in snakeCase and bulk inserts them.
+        """
+        rune_objs = [Rune(**self.init_dict(kwargs)) for kwargs in runes]
+
+        for obj in rune_objs:
+            obj.participant_id = self.instance.id
+
+        self.bulk_create(rune_objs)
+        logger.debug('Bulk created {} runes'.format(len(runes)))
 
 
 class Rune(IterableDataFieldsMixin, models.Model):
