@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 class SummonerManager(models.Manager):
     def create_summoner(self, region, attrs):
         region = region.upper()
-        # logger.debug("region: {}, attrs: {}".format(region, attrs))
 
         return self.create(summoner_id=attrs['id'],
                            name=attrs['name'],
@@ -24,7 +23,7 @@ class SummonerManager(models.Manager):
                            region=region)
 
     def create_summoner_from_match(self, region, attrs):
-        # logger.debug("region: {}, attrs: {}".format(region, attrs))
+        region = region.upper()
 
         return self.create(summoner_id=attrs['summonerId'],
                            profile_icon_id=attrs['profileIcon'],
@@ -32,17 +31,18 @@ class SummonerManager(models.Manager):
                            std_name=standardize_name(attrs['summonerName']),
                            region=region.upper())
 
-    # TODO: Can this be replaced by the django "update_or_create"?
     def create_or_update_summoner_from_match(self, region, attrs):
+        # TODO: Define ttl constant elsewhere.
+        summoner_ttl = timedelta(days=7)
         summoner_id = attrs['summonerId']
         region = region.upper()
-
-        # logger.debug('region: {}, attrs: {}'.format(region, attrs))
 
         with transaction.atomic():
             if self.is_known(summoner_id, region):
                 summoner = Summoner.objects.get(summoner_id=summoner_id, region=region)
-                summoner.update_from_match(attrs)
+
+                if summoner.last_update < datetime.now(tz=pytz.utc) - summoner_ttl:
+                    summoner.update_from_match(attrs)
             else:
                 summoner = self.create_summoner_from_match(region, attrs)
 
@@ -136,7 +136,7 @@ class Summoner(models.Model):
             .first()
 
         if match_date:
-            return datetime.fromtimestamp(match_date/1000,tz=pytz.utc)
+            return datetime.fromtimestamp(match_date/1000, tz=pytz.utc)
         else:
             return None
 
