@@ -200,6 +200,9 @@ class ParticipantIdentity(IterableDataFieldsMixin, models.Model):
     def __str__(self):
         return 'Participant ID {} in {}'.format(self.participant_id, self.match_detail)
 
+    def by_name(self):
+        return self.summoner.name
+
 
 class TeamManager(CreateableFromAttrsMixin, models.Manager):
     def create_team(self, attrs):
