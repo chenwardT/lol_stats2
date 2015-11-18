@@ -223,7 +223,7 @@ class RiotAPI:
                                store_get_match.s()) for match_id in get_ids_chain().get())()
 
     @app.task
-    def get_match(match_id, region=None, include_timeline=False):
+    def get_match(match_id, region=None, include_timeline=False, execute=False):
         """
         Gets a single match, timeline data optionally included.
 
@@ -237,7 +237,10 @@ class RiotAPI:
                   'region': region,
                   'include_timeline': include_timeline}
 
-        return kwargs
+        if not execute:
+            return kwargs
+        else:
+            return chain(riot_api.s(kwargs), store_get_match.s())()
 
     # TODO: The region could be passed along with the match IDs so the caller of
     # the chain doesn't have to.
