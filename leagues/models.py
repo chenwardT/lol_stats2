@@ -65,6 +65,7 @@ class League(models.Model):
 
     class Meta:
         unique_together = ('region', 'queue', 'name', 'tier')
+        get_latest_by = 'last_update'
 
 
 class LeagueEntryManager(models.Manager):

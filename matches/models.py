@@ -73,6 +73,7 @@ class MatchDetail(IterableDataFieldsMixin, models.Model):
 
     class Meta:
         unique_together = ('match_id', 'region')
+        get_latest_by = 'match_creation'
 
 
 class ParticipantManager(ParticipantFromAttrsMixin, models.Manager):

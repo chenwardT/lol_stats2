@@ -152,6 +152,7 @@ class Summoner(models.Model):
     class Meta:
         unique_together = ('summoner_id', 'region')
         index_together = ('summoner_id', 'region')
+        get_latest_by = 'last_update'
 
     def __str__(self):
         return "[{}] {}".format(self.region, self.name)
