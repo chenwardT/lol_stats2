@@ -1,13 +1,12 @@
 from datetime import timedelta
 
 from django.db.models import Count
-from celery import chain
 
 from .functions import chunks
 from leagues.models import LeagueEntry
 from summoners.models import Summoner
 from riot_api.wrapper import RiotAPI
-from lol_stats2.celery import riot_api, store_get_league
+from lol_stats2.celery import riot_api
 
 _MAX_SUMMONER_IDS_PER_QUERY = 40
 
