@@ -311,6 +311,9 @@ class Mastery(IterableDataFieldsMixin, models.Model):
 
     objects = MasteryManager()
 
+    def __str__(self):
+        return 'id: {}, rank: {}'.format(self.mastery_id, self.rank)
+
 # TODO: Check above all previous fields for BigInt -> Int.
 
 
