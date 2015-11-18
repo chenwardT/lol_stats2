@@ -42,12 +42,9 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
                 match.participant_set.create_participant(p)
 
             match.participantidentity_set.bulk_create_participant_identities(attrs['participantIdentities'])
-            
-            for t in attrs['teams']:
-                match.team_set.create_team(t)
+            match.team_set.bulk_create_teams(attrs['teams'])
 
-        logging.info('Created match: [{}] {}'.format(attrs['region'],
-                                                   attrs['matchId']))
+        logging.info('Created match: [{}] {}'.format(attrs['region'], attrs['matchId']))
         return match
 
 
@@ -189,8 +186,9 @@ class ParticipantIdentityManager(CreateableFromAttrsMixin, models.Manager):
         """
         Accepts a list of kwargs for participant identities in snakeCase, creates
         ParticipantIdentity objects based on the kwargs, associates the summoner FK of each
-        with a summoner that is created or updated based on the inner `player` dict in each
-        participant identity dict, and then bulk inserts all of them.
+        with a Summoner object that is created or updated based on the inner `player` dict in
+        each participant identity dict, and then bulk inserts all of the ParticipantIdentity
+        objects.
         """
         pi_objs = []
         player_kwargs = []
@@ -233,6 +231,19 @@ class TeamManager(CreateableFromAttrsMixin, models.Manager):
             team.bannedchampion_set.bulk_create_banned_champions(attrs['bans'])
 
         return team
+
+    def bulk_create_teams(self, teams):
+        """
+        Accepts a list of kwargs for teams in snakeCase and bulk inserts the resulting
+        Team objects created from them.
+        """
+        team_objs = [Team(**self.init_dict(kwargs)) for kwargs in teams]
+
+        for obj in team_objs:
+            obj.match_detail_id = self.instance.id
+
+        self.bulk_create(team_objs)
+        logger.debug('Bulk created {} teams'.format(len(teams)))
 
 
 class Team(IterableDataFieldsMixin, models.Model):
@@ -280,7 +291,8 @@ class MasteryManager(CreateableFromAttrsMixin, models.Manager):
 
     def bulk_create_masteries(self, masteries):
         """
-        Accepts a list of kwargs for masteries in snakeCase and bulk inserts them.
+        Accepts a list of kwargs for masteries in snakeCase and bulk inserts the resulting
+        Mastery objects created from them.
         """
         mastery_objs = [Mastery(**self.init_dict(kwargs)) for kwargs in masteries]
 
@@ -359,7 +371,8 @@ class RuneManager(CreateableFromAttrsMixin, models.Manager):
 
     def bulk_create_runes(self, runes):
         """
-        Accepts a list of kwargs for runes in snakeCase and bulk inserts them.
+        Accepts a list of kwargs for runes in snakeCase and bulk inserts the resulting
+        Rune objects created from them.
         """
         rune_objs = [Rune(**self.init_dict(kwargs)) for kwargs in runes]
 
@@ -389,7 +402,8 @@ class BannedChampionManager(CreateableFromAttrsMixin, models.Manager):
 
     def bulk_create_banned_champions(self, bans):
         """
-        Accepts a list of kwargs for bans in snakeCase and bulk inserts them.
+        Accepts a list of kwargs for bans in snakeCase and bulk inserts the resulting
+        BannedChampion objects created from them.
         """
         banned_champion_objs = [BannedChampion(**self.init_dict(kwargs)) for kwargs in bans]
 
