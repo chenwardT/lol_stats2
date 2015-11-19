@@ -4,8 +4,8 @@ from rest_framework import routers
 
 from summoners.views import SummonerViewSet, index, search, show, refresh
 from champions.views import ChampionViewSet
-from matches.views import MatchDetailViewSet
-from leagues.views import LeagueViewSet
+from matches.views import MatchDetailViewSet, MatchListForSummoner
+from leagues.views import LeagueViewSet, LeagueEntryForSummoner
 from cache.views import task_status
 
 router = routers.DefaultRouter()
@@ -19,6 +19,9 @@ admin.autodiscover()
 urlpatterns = patterns('',
     url(r'^', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
+    url(r'^summoner-matches/(?P<summoner_pk>\d+)', MatchListForSummoner.as_view()),
+    url(r'^summoner-league/(?P<summoner_pk>\d+)', LeagueEntryForSummoner.as_view()),
 
     url(r'^home/', index),
     url(r'^show/(?P<name>\w+)', show, name='show'),
