@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from .models import League, LeagueEntry
 
+
 class LeagueEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = LeagueEntry
@@ -10,8 +11,10 @@ class LeagueEntrySerializer(serializers.ModelSerializer):
                   'player_or_team_name', 'wins', 'losses', 'series_losses',
                   'series_progress', 'series_target', 'series_wins')
 
+
 class LeagueSerializer(serializers.ModelSerializer):
     leagueentry_set = LeagueEntrySerializer(many=True, read_only=True)
+
     class Meta:
         model = League
         fields = ('region', 'queue', 'name', 'tier', 'leagueentry_set')

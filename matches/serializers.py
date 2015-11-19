@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from summoners.serializers import SummonerSerializer
+# from summoners.serializers import SummonerSerializer
+from summoners.models import Summoner
 from .models import (MatchDetail,
                      Participant,
                      ParticipantIdentity,
@@ -9,6 +10,11 @@ from .models import (MatchDetail,
                      ParticipantTimeline,
                      Rune,
                      BannedChampion)
+
+class SimplifiedSummonerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Summoner
+        fields = ('name',)
 
 class MasterySerializer(serializers.ModelSerializer):
     class Meta:
@@ -38,18 +44,18 @@ class ParticipantTimelineSerializer(serializers.ModelSerializer):
         fields = [f for f in ParticipantTimeline.data_fields()]
 
 class ParticipantSerializer(serializers.ModelSerializer):
-    rune_set = RuneSerializer(many=True, read_only=True)
-    mastery_set = MasterySerializer(many=True, read_only=True)
+    # rune_set = RuneSerializer(many=True, read_only=True)
+    # mastery_set = MasterySerializer(many=True, read_only=True)
     participanttimeline_set = ParticipantTimelineSerializer(many=True, read_only=True)
 
     class Meta:
         model = Participant
-        fields = [f for f in Participant.data_fields()] + ['rune_set',
-                                                           'mastery_set',
+        fields = [f for f in Participant.data_fields()] + [#'rune_set',
+                                                           #'mastery_set',
                                                            'participanttimeline_set']
 
 class ParticipantIdentitySerializer(serializers.ModelSerializer):
-    summoner = SummonerSerializer(read_only=True)
+    summoner = SimplifiedSummonerSerializer(read_only=True)
 
     class Meta:
         model = ParticipantIdentity

@@ -39,6 +39,7 @@ def search(request):
 
     return render(request, 'summoners/search.html', {'form': form})
 
+
 @ensure_csrf_cookie
 def show(request, name):
     ss = SingleSummoner(name, region='NA')
