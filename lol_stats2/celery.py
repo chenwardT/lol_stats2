@@ -49,6 +49,7 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 
+
 # TODO: Move tasks into separate modules.
 # TODO: Create separate task for static API calls (not counted against rate limit).
 
@@ -84,6 +85,7 @@ def riot_api(self, kwargs):
     non_method_kwargs = kwargs.copy()
     non_method_kwargs.pop('method')
 
+    # FIXME: Investigate billiard.exceptions.WorkerLostError on retry.
     # Note: Preventing exceptions from propagating hides them from flower.
     # Exceptions of type `retry` will however, be shown.
     try:
@@ -95,8 +97,11 @@ def riot_api(self, kwargs):
             logger.critical('400 error ({})'.format(e))
         elif e == error_401:
             logger.critical('401 error ({})'.format(e))
-        elif e == error_500 or e == error_503:
-            logger.error('5xx error, retrying in {} ({})'.format(RIOT_API_RETRY_DELAY, e))
+        elif e == error_500:
+            logger.error('500 error, retrying in {} ({})'.format(RIOT_API_RETRY_DELAY, e))
+            raise self.retry(exc=e)
+        elif e == error_503:
+            logger.error('503 error, retrying in {} ({})'.format(RIOT_API_RETRY_DELAY, e))
             raise self.retry(exc=e)
         elif e == error_429:
             retry_after = int(e.headers['Retry-After'])
