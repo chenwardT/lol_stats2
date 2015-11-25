@@ -49,17 +49,17 @@ def show(request, name, region):
     ss = SingleSummoner(name=name, region=region)
 
     if ss.is_known():
-        ss._get_instance()
+        ss.get_instance()
         return render(request, 'summoners/show.html',
                       {'summoner': ss.summoner,
                        'name': ss.summoner.name,
-                       'recent_matches': ss.summoner.matches()[:20]})
+                       'recent_matches': ss.summoner.matches(10)})
     else:
         if ss.first_time_query():
             return render(request, 'summoners/show.html',
-                      {'summoner': ss.summoner,
-                       'name': ss.summoner.name,
-                       'recent_matches': ss.summoner.matches()[:20]})
+                          {'summoner': ss.summoner,
+                           'name': ss.summoner.name,
+                           'recent_matches': ss.summoner.matches(10)})
         else:
             return render(request, 'summoners/show.html')
 
@@ -70,7 +70,7 @@ def refresh(request):
         name = request.POST['name']
 
         ss = SingleSummoner(name=name, region='NA')
-        ss._get_instance()
+        ss.get_instance()
         task_ids = ss.full_query()
 
         return JsonResponse({'task_ids': task_ids})
