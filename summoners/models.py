@@ -60,7 +60,9 @@ class Summoner(models.Model):
     -standardized summoner name.
     """
     # TODO: Set to something reasonable; 20 min?
-    CACHE_DURATION = timedelta(minutes=1)
+    SUMMONER_TTL = timedelta(seconds=1)
+    MATCHES_TTL = timedelta(minutes=1)
+    LEAGUES_TTL = timedelta(minutes=1)
 
     summoner_id = models.BigIntegerField(db_index=True)
 
@@ -174,6 +176,15 @@ class Summoner(models.Model):
         league_entry = apps.get_model('leagues', 'LeagueEntry')
         return league_entry.objects.filter(league__region=self.region, league__queue='RANKED_SOLO_5x5')\
             .get(player_or_team_id=self.summoner_id)
+
+    def is_refreshable(self):
+        return self.last_update < datetime.now(tz=pytz.utc) - Summoner.SUMMONER_TTL
+
+    def is_matches_refreshable(self):
+        return self.last_matches_update < datetime.now(tz=pytz.utc) - Summoner.MATCHES_TTL
+
+    def is_leagues_refreshable(self):
+        return self.last_leagues_update < datetime.now(tz=pytz.utc) - Summoner.LEAGUES_TTL
 
     class Meta:
         unique_together = ('summoner_id', 'region')
