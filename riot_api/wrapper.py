@@ -260,8 +260,6 @@ class RiotAPI:
         Note: Only works with matches of type 5x5, which are the only ones allowed
         by RiotAPI.get_match_list.
         """
-        ids_to_query = []
-
         if 'matches' in result:
             logger.debug('{} matches in result'.format(len(result['matches'])))
 
@@ -279,5 +277,7 @@ class RiotAPI:
             ids_to_query = list(result_ids - known_ids)
 
             logger.info('{} matches will be fetched.'.format(len(ids_to_query)))
+        else:
+            ids_to_query = []
 
         return ids_to_query
