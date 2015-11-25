@@ -87,8 +87,8 @@ class SingleSummoner:
         #         time.sleep(.5)
 
         # DEBUG - for console use
-        # print('Retrieved {}'.format(self._get_instance()))
-        # logger.info('Summoner init complete, {}'.format(self._get_instance()))
+        # print('Retrieved {}'.format(self.get_instance()))
+        # logger.info('Summoner init complete, {}'.format(self.get_instance()))
 
     def first_time_query(self):
         """
@@ -104,7 +104,7 @@ class SingleSummoner:
         result = self._query_summoner_by_name().get()
 
         if result['created'] == 1 or result['updated'] == 1:
-            self._get_instance()
+            self.get_instance()
             self.blocking_full_query()
 
             logger.info('complete: found summoner and got data ({})'.format(datetime.now() - query_start))
@@ -133,7 +133,7 @@ class SingleSummoner:
     def _query_summoner_by_id(self):
         return RiotAPI.get_summoners(ids=self.summoner_id, region=self.region)
 
-    def _get_instance(self):
+    def get_instance(self):
         """
         Get the appropriate model instance and assign it to self.summoner, where
         it is cached.
@@ -175,7 +175,7 @@ class SingleSummoner:
     #     # Alternatively, check caches for each model instead of everything we depend
     #     # on to further more granular cache refreshing.
     #     #
-    #     # return datetime.now(tz=pytz.utc) < (self._get_instance().last_update
+    #     # return datetime.now(tz=pytz.utc) < (self.get_instance().last_update
     #     #                                     + Summoner.CACHE_DURATION)
 
     def _is_matches_fresh(self):
