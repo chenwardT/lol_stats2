@@ -31,7 +31,7 @@ class SingleSummonerTestCase(TestCase):
 
         # TODO: Find another way to ensure summoner was stored that doesn't involve
         # checking private methods.
-        self.assertIsNotNone(unknown_ss._get_instance())
+        self.assertIsNotNone(unknown_ss.get_instance())
 
     def test_init_by_name_for_nonexistent_summoner(self):
         nonexistent_ss = SingleSummoner(name='abcdefghijlmnopqrst', region='NA')
