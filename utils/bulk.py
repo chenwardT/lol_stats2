@@ -108,8 +108,8 @@ def get_matches_for_summoners_without_history(summoners=None, region=None,
 
     query_list = []
 
-    for summoner in match_count:
-        if summoner.match_cnt < threshold:
+    for summoner in summoners:
+        if summoner.matches(False).count() < threshold:
             query_list.append(summoner)
 
     eta = timedelta(seconds=remote_call_duration() * len(query_list) *

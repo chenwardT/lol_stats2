@@ -31,4 +31,4 @@ class MatchListForSummoner(generics.ListAPIView):
 
     def get_queryset(self):
         summoner_pk = self.kwargs['summoner_pk']
-        return Summoner.objects.get(pk=summoner_pk).matches()
+        return Summoner.objects.get(pk=summoner_pk).matches(10)

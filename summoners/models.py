@@ -147,14 +147,19 @@ class Summoner(models.Model):
         else:
             return None
 
-    def matches(self):
+    def matches(self, limit=10):
         """
         Returns a QuerySet containing this summoner's matches in reverse chronological order.
+
+        Accepts a limit on the number of matches returned. Setting `limit` to False will return all matches.
         """
         match_detail = apps.get_model('matches', 'MatchDetail')
         pi_set = self.participantidentity_set.all()
 
-        return match_detail.objects.filter(participantidentity=pi_set).order_by('match_creation').reverse()
+        if limit:
+            return match_detail.objects.filter(participantidentity=pi_set).order_by('match_creation').reverse()[:limit]
+        else:
+            return match_detail.objects.filter(participantidentity=pi_set).order_by('match_creation').reverse()
 
     def league(self):
         """
