@@ -53,8 +53,7 @@
 
   $("#refresh").click(function(e){
     e.preventDefault();
-    var name = window.location.pathname.split('/');
-    name = name[name.length - 1];
+    var name = $("#name").text();
 
     $.ajax({
       type: "POST",
