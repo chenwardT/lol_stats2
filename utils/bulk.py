@@ -103,9 +103,8 @@ def get_summoners_from_league_entries(league_entries=None, region=None):
 # TODO: Allow for list of summoner objects to be passed in.
 def get_matches_for_summoners_without_history(summoners=None, region=None,
                                               threshold=1, num_matches=10,
-                                              ranked_queues='RANKED_SOLO_5x5'):
-    match_count = summoners.annotate(match_cnt=Count('participantidentity'))
-
+                                              ranked_queues='RANKED_SOLO_5x5',
+                                              prompt=True):
     query_list = []
 
     for summoner in summoners:
@@ -119,11 +118,15 @@ def get_matches_for_summoners_without_history(summoners=None, region=None,
           '{} summoners.\nThis will take about {}.'
           .format(len(query_list) * (num_matches + 1), num_matches, len(query_list), eta))
 
-    response = input('Proceed? (y/[n])\n')
+    if prompt:
+        response = input('Proceed? (y/[n])\n')
+    else:
+        response = 'y'
 
     if response == 'y':
         for summoner in query_list:
-            RiotAPI.get_match_list(summoner.summoner_id, region, ranked_queues=ranked_queues)
+            RiotAPI.get_match_list(summoner.summoner_id, region, ranked_queues=ranked_queues,
+                                   max_matches=num_matches)
 
 
 def update_summoners(summoners=None, region=None):
