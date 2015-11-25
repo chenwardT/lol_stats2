@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import JsonResponse
@@ -8,6 +10,8 @@ from .models import Summoner
 from .serializers import SummonerSerializer
 from .forms import SearchForm
 from cache.summoners import SingleSummoner
+
+logger = logging.getLogger(__name__)
 
 
 class SummonerResultsSetPagination(PageNumberPagination):
@@ -62,6 +66,7 @@ def show(request, name, region):
 
 def refresh(request):
     if request.method == 'POST':
+        logger.debug(request.POST)
         name = request.POST['name']
 
         ss = SingleSummoner(name=name, region='NA')
