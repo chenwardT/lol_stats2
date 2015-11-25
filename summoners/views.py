@@ -33,7 +33,7 @@ def search(request):
         form = SearchForm(request.POST)
 
         if form.is_valid():
-            return redirect('show', name=form.cleaned_data['name'])
+            return redirect('show', name=form.cleaned_data['name'], region=form.cleaned_data['region'])
     else:
         form = SearchForm()
 
@@ -41,8 +41,8 @@ def search(request):
 
 
 @ensure_csrf_cookie
-def show(request, name):
-    ss = SingleSummoner(name, region='NA')
+def show(request, name, region):
+    ss = SingleSummoner(name=name, region=region)
 
     if ss.is_known():
         ss._get_instance()
