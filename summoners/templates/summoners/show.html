@@ -49,6 +49,8 @@
           }
       }
     });
+
+    checkIfRefreshable();
   });
 
   $("#refresh").click(function(e){
@@ -66,6 +68,7 @@
     });
     console.log('refresh request sent for ' + name);
     waitOnJob();
+    $(this).prop('disabled', true);
   });
 
   var statusCheckInterval;
@@ -88,21 +91,51 @@
   var tasks_done = false;
 
   function checkStatus(){
+    if (task_ids.length > 0) {
+      $.ajax({
+        type: "POST",
+        url: "/task-status/",
+        data: {task_ids: task_ids},
+        success: function (resp) {
+          console.log(resp);
+          tasks_done = resp["success"];
+
+          if (tasks_done === true) {
+            clearInterval(statusCheckInterval);
+            hideLoading();
+            location.reload();
+          }
+        },
+        error: function (resp, status, error) {
+          console.log('error:');
+          console.log(resp);
+          console.log(status);
+          console.log(error);
+        }
+      });
+    }
+  }
+
+  function checkIfRefreshable(){
+    var pk = $("#pk").text();
+
+    console.log('checking if refreshable: ' + pk);
+
     $.ajax({
       type: "POST",
-      url: "/task_status/",
-      data: {task_ids: task_ids},
-      success: function(resp){
+      url: "/summoner-refreshable/",
+      data: {pk: pk},
+      success: function (resp) {
         console.log(resp);
-        tasks_done = resp["success"];
 
-        if (tasks_done === true) {
-          clearInterval(statusCheckInterval);
-          hideLoading();
-          location.reload();
+        if (resp['refreshable'] == true) {
+          $("#refresh").prop('disabled', false);
+        }
+        else {
+          $("#refresh").prop('disabled', true);
         }
       }
-    });
+    })
   }
 
 
