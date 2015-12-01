@@ -32,6 +32,9 @@ from matches.models import MatchDetail
 # Currently only used in the event of a 5xx HTTP response code from Riot's API.
 RIOT_API_RETRY_DELAY = 2
 
+# Used when a non-API rate limit is in effect (e.g. by some Riot service that their API relies on)
+NON_API_LIMIT_RETRY_DELAY = 1
+
 logger = logging.getLogger(__name__)
 
 # Set the default Django settings module
@@ -85,33 +88,38 @@ def riot_api(self, kwargs):
     non_method_kwargs = kwargs.copy()
     non_method_kwargs.pop('method')
 
-    # FIXME: Investigate billiard.exceptions.WorkerLostError on retry.
-    # Note: Preventing exceptions from propagating hides them from flower.
-    # Exceptions of type `retry` will however, be shown.
     try:
         result = func(**non_method_kwargs)
     except LoLException as e:
-        if e == error_404:
-            logger.info('404 error ({})'.format(e))
-        elif e == error_400:
-            logger.critical('400 error ({})'.format(e))
+        logger.exception('LoLException occurred: %s', e)
+        logger.debug('Headers: %s', e.headers)
+        if e == error_400:
+            logger.error('400 error')
         elif e == error_401:
-            logger.critical('401 error ({})'.format(e))
+            logger.error('401 error')
+        elif e == error_404:
+            logger.info('404 error')
+        elif e == error_429:
+            if 'Retry-After' in e.headers:
+                retry_after = int(e.headers['Retry-After'])
+                logger.critical('429 error, API rate-limit, retrying in %s sec', retry_after)
+                raise self.retry(exc=e, countdown=retry_after)
+            else:
+                logger.error('429 error, non-API rate limit, retrying in %s sec',
+                                 NON_API_LIMIT_RETRY_DELAY)
+                raise self.retry(exc=e, countdown=NON_API_LIMIT_RETRY_DELAY)
         elif e == error_500:
-            logger.error('500 error, retrying in {} ({})'.format(RIOT_API_RETRY_DELAY, e))
+            logger.error('500 error, retrying in %s sec', RIOT_API_RETRY_DELAY)
             raise self.retry(exc=e)
         elif e == error_503:
-            logger.error('503 error, retrying in {} ({})'.format(RIOT_API_RETRY_DELAY, e))
+            logger.error('503 error, retrying in %s sec', RIOT_API_RETRY_DELAY)
             raise self.retry(exc=e)
-        elif e == error_429:
-            retry_after = int(e.headers['Retry-After'])
-            logger.critical('429 error, retrying in {} ({})'.format(retry_after, e))
-            raise self.retry(exc=e, countdown=retry_after)
         else:
-            logger.critical('Unhandled LoLException (did riotwatcher get updated?) ({}: {})'.format(e, e.__dict__))
+            logger.exception('Unhandled LoLException (did riotwatcher get updated?)')
+            raise
         result = {}
     except:
-        logger.critical('Unhandled exception', exc_info=True)
+        logger.exception('Unhandled exception!')
         raise
 
     return result
@@ -129,7 +137,7 @@ def store_get_summoners(result, region):
     """
     Callback that stores the result of RiotWatcher get_summoners calls.
     """
-    logger.debug(result)
+    logger.debug("result: %s, region: %s", result, region)
     region = region.upper()
     storage_result = {'created': 0, 'updated': 0}
 
