@@ -11,6 +11,7 @@ import os
 import logging
 
 from celery import Celery
+from celery.exceptions import MaxRetriesExceededError
 from riotwatcher.riotwatcher import (RiotWatcher,
                                      LoLException,
                                      error_400,
@@ -91,8 +92,6 @@ def riot_api(self, kwargs):
     try:
         result = func(**non_method_kwargs)
     except LoLException as e:
-        logger.exception('LoLException occurred: %s', e)
-        logger.debug('Headers: %s', e.headers)
         if e == error_400:
             logger.error('400 error')
         elif e == error_401:
@@ -103,17 +102,29 @@ def riot_api(self, kwargs):
             if 'Retry-After' in e.headers:
                 retry_after = int(e.headers['Retry-After'])
                 logger.critical('429 error, API rate-limit, retrying in %s sec', retry_after)
-                raise self.retry(exc=e, countdown=retry_after)
+                try:
+                    raise self.retry(countdown=retry_after)
+                except MaxRetriesExceededError as e:
+                    logger.error('Max retries exceeded, %s', e)
             else:
                 logger.error('429 error, non-API rate limit, retrying in %s sec',
-                                 NON_API_LIMIT_RETRY_DELAY)
-                raise self.retry(exc=e, countdown=NON_API_LIMIT_RETRY_DELAY)
+                             NON_API_LIMIT_RETRY_DELAY)
+                try:
+                    raise self.retry(countdown=NON_API_LIMIT_RETRY_DELAY)
+                except MaxRetriesExceededError as e:
+                    logger.error('Max retries exceeded, %s', e)
         elif e == error_500:
             logger.error('500 error, retrying in %s sec', RIOT_API_RETRY_DELAY)
-            raise self.retry(exc=e)
+            try:
+                raise self.retry()
+            except MaxRetriesExceededError as e:
+                logger.error('Max retries exceeded, %s', e)
         elif e == error_503:
             logger.error('503 error, retrying in %s sec', RIOT_API_RETRY_DELAY)
-            raise self.retry(exc=e)
+            try:
+                raise self.retry()
+            except MaxRetriesExceededError as e:
+                logger.error('Max retries exceeded, %s', e)
         else:
             logger.exception('Unhandled LoLException (did riotwatcher get updated?)')
             raise
