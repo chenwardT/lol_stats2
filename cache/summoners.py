@@ -16,6 +16,7 @@ from utils.functions import coalesce_task_ids
 
 logger = logging.getLogger(__name__)
 
+
 class SingleSummoner:
     """
     Contains methods required to maintain the front end's summoner detail page.
@@ -43,7 +44,6 @@ class SingleSummoner:
     _LAST_MATCH_TIME_THRESHOLD = timedelta(minutes=15)
     _LEAGUE_UPDATE_INTERVAL = timedelta(minutes=15)
 
-    # TODO: Can we combine error logging and exception raising?
     # TODO: Rewrite init to not wait on get_summoners if we don't already know the summoner.
     def __init__(self, name=None, summoner_id=None, region=None):
         # These attributes are only used to get the summoner instance
@@ -61,7 +61,7 @@ class SingleSummoner:
         # try/except here and include exc_info in log?
         if self.region not in self._ALLOWED_REGIONS:
             logger.error('Invalid region: {}; must be one of {}'
-                             .format(self.region, self._ALLOWED_REGIONS))
+                         .format(self.region, self._ALLOWED_REGIONS))
             raise ValueError('Invalid region: {}; must be one of {}'
                              .format(self.region, self._ALLOWED_REGIONS))
 
@@ -140,7 +140,6 @@ class SingleSummoner:
 
         Returns summoner instance if found, otherwise None.
         """
-        # TODO: Replace w/Q object; OR the queries by name and ID to get summoner.
         if self.summoner is None:
             if self.summoner_id:
                 summoner_query = Summoner.objects.filter(region=self.region,

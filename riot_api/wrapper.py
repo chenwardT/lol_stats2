@@ -209,10 +209,6 @@ class RiotAPI:
                 summoner.save()
                 logger.info('Set {} last_matches_update to now: {}'.format(summoner, now))
 
-            # return riot_api.apply_async((func, kwargs),
-            #                             link=get_matches_from_ids.s(region))
-
-            # TODO: execute chain here vs inside group below?
             get_ids_chain = chain(riot_api.s(kwargs),
                                   RiotAPI.get_matches_from_ids.s(region=region,
                                                                  max_matches=max_matches))

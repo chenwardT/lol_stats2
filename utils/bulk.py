@@ -1,7 +1,5 @@
 from datetime import timedelta
 
-from django.db.models import Count
-
 from .functions import chunks
 from leagues.models import LeagueEntry
 from summoners.models import Summoner

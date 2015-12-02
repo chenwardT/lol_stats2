@@ -57,8 +57,6 @@ riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
 # TODO: Move tasks into separate modules.
 # TODO: Create separate task for static API calls (not counted against rate limit).
 
-# TODO: Refine parameters for retrying: read that new response header for when we can retry!
-# FIXME: Params
 @app.task(bind=True, ignore_result=False, rate_limit='.8/s', max_retries=3,
           default_retry_delay=RIOT_API_RETRY_DELAY)
 def riot_api(self, kwargs):
@@ -205,9 +203,6 @@ def store_champion_list(result):
     return created
 
 
-# TODO: In testing, when this got ran repeatedly in a short period of time,
-# it looks like they can be run in parallel (we don't want that) as shown by
-# IntegrityError exceptions.
 @app.task(ignore_result=True)
 def store_summoner_spell_list(result):
     """
@@ -269,12 +264,10 @@ def store_league(result, region):
     Stores a previously unknown league or replaces the entirety of the
     summoner's league's entries if it was known.
     """
-    # TODO: Fix IntegrityError, duplicate player_or_team_id + league_id.
-
-    # Empty dict means that the queried summoner is not in a league.
     lock_id = 'store_league'
 
     with advisory_lock(lock_id) as acquired:
+        # Empty dict means that the queried summoner is not in a league.
         if result != {}:
             for summoner_id in result:
                 logger.debug('Reading leagues for summoner ID {}'.format(summoner_id))

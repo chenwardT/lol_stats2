@@ -49,7 +49,6 @@ class League(models.Model):
     """
     Maps to Riot API League DTO.
     """
-    # TODO: Some (likely all) of these region values are lowercase; they should be uppercase!
     region = models.CharField(max_length=4, db_index=True)     # ex. NA
     queue = models.CharField(max_length=32)     # ex. RANKED_SOLO_5x5
     name = models.CharField(max_length=32)      # ex. Orianna's Warlocks

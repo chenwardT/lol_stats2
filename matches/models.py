@@ -41,7 +41,7 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
             for p in attrs['participants']:
                 match.participant_set.create_participant(p)
 
-            # See TODO for this method.
+            # See bulk_create_participants
             # match.participant_set.bulk_create_participants(attrs['participants'])
             match.participantidentity_set.bulk_create_participant_identities(attrs['participantIdentities'])
             match.team_set.bulk_create_teams(attrs['teams'])

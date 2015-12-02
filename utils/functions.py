@@ -6,6 +6,7 @@ from celery.result import AsyncResult, GroupResult
 
 logger = logging.getLogger(__name__)
 
+
 def chunks(l, n):
     """
     Yield successive n-sized chunks from l.
@@ -14,7 +15,6 @@ def chunks(l, n):
         yield l[i:i+n]
 
 
-# TODO: Compare speed to try/except KeyError block.
 def get_val_or_none(dct, key):
     """
     If `key` exists in dict, return the value of `key` in dict,
