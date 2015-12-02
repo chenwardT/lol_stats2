@@ -31,7 +31,7 @@ from leagues.models import League
 from matches.models import MatchDetail
 
 # Currently only used in the event of a 5xx HTTP response code from Riot's API.
-RIOT_API_RETRY_DELAY = 2
+RIOT_API_RETRY_DELAY = 1
 
 # Used when a non-API rate limit is in effect (e.g. by some Riot service that their API relies on)
 NON_API_LIMIT_RETRY_DELAY = 1
