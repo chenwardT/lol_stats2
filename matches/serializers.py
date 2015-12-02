@@ -78,6 +78,20 @@ class MatchDetailSerializer(serializers.ModelSerializer):
     participant_set = ParticipantSerializer(many=True, read_only=True)
     team_set = TeamSerializer(many=True, read_only=True)
 
+    @staticmethod
+    def setup_eager_loading(queryset):
+        """
+        Perform necessary eager loading of data.
+        """
+        queryset = queryset.prefetch_related('participantidentity_set',
+                                             'participantidentity_set__summoner',
+                                             'participant_set',
+                                             'participant_set__participanttimeline_set',
+                                             'team_set',
+                                             'team_set__bannedchampion_set')
+
+        return queryset
+
     class Meta:
         model = MatchDetail
         fields = [f for f in MatchDetail.data_fields()] + ['participantidentity_set',
