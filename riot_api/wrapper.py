@@ -10,10 +10,10 @@ from celery import chain, group
 
 from lol_stats2.celery import (app,
                                riot_api,
-                               store_get_match,
-                               store_get_summoners,
-                               store_get_league,
-                               store_static_get_summoner_spell_list)
+                               store_match,
+                               store_summoners,
+                               store_league,
+                               store_summoner_spell_list)
 from matches.models import MatchDetail
 from summoners.models import Summoner
 
@@ -39,7 +39,7 @@ class RiotAPI:
 
         kwargs = {'method': 'get_summoners', 'names': names, 'ids': ids, 'region': region.lower()}
 
-        return chain(riot_api.s(kwargs), store_get_summoners.s(region=region))()
+        return chain(riot_api.s(kwargs), store_summoners.s(region=region))()
 
     @staticmethod
     def static_get_champion_list(region=None, locale=None, version=None,
@@ -69,7 +69,7 @@ class RiotAPI:
                   'data_by_id': data_by_id,
                   'spell_data': spell_data}
 
-        return chain(riot_api.s(kwargs), store_static_get_summoner_spell_list.s())()
+        return chain(riot_api.s(kwargs), store_summoner_spell_list.s())()
 
     # Unused, see Game vs MatchDetail (this is unranked matches)
     @staticmethod
@@ -136,7 +136,7 @@ class RiotAPI:
                   'region': region.lower()}
 
         if len(to_query) != 0:
-            return chain(riot_api.s(kwargs), store_get_league.s(region=region))()
+            return chain(riot_api.s(kwargs), store_league.s(region=region))()
         else:
             logger.warning('No valid summoners to get leagues of.')
 
@@ -219,7 +219,7 @@ class RiotAPI:
 
             return group(chain(RiotAPI.get_match.s(match_id=match_id, region=region),
                                riot_api.s(),
-                               store_get_match.s()) for match_id in get_ids_chain().get())()
+                               store_match.s()) for match_id in get_ids_chain().get())()
 
     @app.task
     def get_match(match_id, region=None, include_timeline=False, execute=False):
@@ -239,7 +239,7 @@ class RiotAPI:
         if not execute:
             return kwargs
         else:
-            return chain(riot_api.s(kwargs), store_get_match.s())()
+            return chain(riot_api.s(kwargs), store_match.s())()
 
     # TODO: The region could be passed along with the match IDs so the caller of
     # the chain doesn't have to.

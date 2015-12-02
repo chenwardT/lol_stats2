@@ -144,7 +144,7 @@ def riot_api(self, kwargs):
 # data here!
 # Also check get_summoner for same.
 @app.task(routing_key='store.get_summoners')
-def store_get_summoners(result, region):
+def store_summoners(result, region):
     """
     Callback that stores the result of RiotWatcher get_summoners calls.
     """
@@ -179,7 +179,7 @@ def store_get_summoners(result, region):
 
 
 @app.task(ignore_result=True)
-def store_static_get_champion_list(result):
+def store_champion_list(result):
     """
     Callback that stores the result of RiotWatcher static_get_champion_list calls.
     See `link` argument of riot_api call in RiotAPI.static_get_champion_list.
@@ -209,7 +209,7 @@ def store_static_get_champion_list(result):
 # it looks like they can be run in parallel (we don't want that) as shown by
 # IntegrityError exceptions.
 @app.task(ignore_result=True)
-def store_static_get_summoner_spell_list(result):
+def store_summoner_spell_list(result):
     """
     Callback that stores the result of RiotWatcher static_get_summoner_list calls.
     Since there are only a handful of spells, we replace all spells w/the new data.
@@ -234,7 +234,7 @@ def store_static_get_summoner_spell_list(result):
 # TODO: Use game IDs to get match data.
 # This way, you get full participant data, instead of just the 1 player's items, etc.
 @app.task
-def store_get_recent_games(result, summoner_id, region):
+def store_recent_games(result, summoner_id, region):
     """
     Callback that stores the result of RiotWatcher get_recent_games calls.
     """
@@ -249,7 +249,7 @@ def store_get_recent_games(result, summoner_id, region):
 
 
 @app.task(ignore_result=True)
-def store_get_challenger(result, region):
+def store_challenger(result, region):
     """
     Callback that stores the result of RiotWatcher get_challenger calls.
 
@@ -261,7 +261,7 @@ def store_get_challenger(result, region):
 
 
 @app.task(routing_key='store.get_league')
-def store_get_league(result, region):
+def store_league(result, region):
     """
     Callback that stores the result of the RiotWatcher get_league calls.
     `summoner_id` is expected to be the single key of the `result` dict.
@@ -291,7 +291,7 @@ def store_get_league(result, region):
 
 
 @app.task
-def store_get_match(result):
+def store_match(result):
     """
     Callback that stores the result of RiotWatcher get_match calls.
     Creates instances for MatchDetail and all related models.

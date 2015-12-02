@@ -7,7 +7,7 @@ import logging
 from celery import chain
 
 from riot_api.wrapper import RiotAPI
-from lol_stats2.celery import riot_api, store_static_get_champion_list
+from lol_stats2.celery import riot_api, store_champion_list
 
 logger = logging.getLogger(__name__)
 
@@ -24,4 +24,4 @@ class ChampionManager:
         logger.debug()
         chain(RiotAPI.static_get_champion_list(),
               riot_api.s(),
-              store_static_get_champion_list.s())()
+              store_champion_list.s())()

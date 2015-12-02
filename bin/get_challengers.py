@@ -3,7 +3,7 @@ from celery import chain
 from leagues.models import League
 from utils.functions import chunks
 from riot_api.wrapper import RiotAPI
-from lol_stats2.celery import riot_api, store_get_summoners
+from lol_stats2.celery import riot_api, store_summoners
 
 challenger_leagues = {
     "euw": "Wukong's Lancers",
