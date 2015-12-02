@@ -34,6 +34,7 @@ class LeagueManager(models.Manager):
         return league
 
     # TODO: Allow timedelta to be passed in.
+    @staticmethod
     def update_league(self, league, attrs, region):
         if league.last_update < (datetime.now(tz=pytz.utc) - timedelta(seconds=1)):
             logger.debug(league)
