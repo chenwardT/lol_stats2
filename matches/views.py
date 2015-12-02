@@ -1,9 +1,13 @@
+import logging
+
 from rest_framework import viewsets, generics
 from rest_framework.pagination import PageNumberPagination
 
 from summoners.models import Summoner
 from .models import MatchDetail
 from .serializers import MatchDetailSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class MatchDetailResultsSetPagination(PageNumberPagination):

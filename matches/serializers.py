@@ -1,6 +1,7 @@
+import logging
+
 from rest_framework import serializers
 
-# from summoners.serializers import SummonerSerializer
 from summoners.models import Summoner
 from .models import (MatchDetail,
                      Participant,
@@ -11,25 +12,32 @@ from .models import (MatchDetail,
                      Rune,
                      BannedChampion)
 
+logger = logging.getLogger(__name__)
+
+
 class SimplifiedSummonerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Summoner
         fields = ('name',)
+
 
 class MasterySerializer(serializers.ModelSerializer):
     class Meta:
         model = Mastery
         fields = [f for f in Mastery.data_fields()]
 
+
 class RuneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rune
         fields = [f for f in Rune.data_fields()]
 
+
 class BannedChampionSerializer(serializers.ModelSerializer):
     class Meta:
         model = BannedChampion
         fields = [f for f in BannedChampion.data_fields()]
+
 
 class TeamSerializer(serializers.ModelSerializer):
     bannedchampion_set = BannedChampionSerializer(many=True, read_only=True)
@@ -38,10 +46,12 @@ class TeamSerializer(serializers.ModelSerializer):
         model = Team
         fields = [f for f in Team.data_fields()] + ['bannedchampion_set']
 
+
 class ParticipantTimelineSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParticipantTimeline
         fields = [f for f in ParticipantTimeline.data_fields()]
+
 
 class ParticipantSerializer(serializers.ModelSerializer):
     # rune_set = RuneSerializer(many=True, read_only=True)
@@ -54,12 +64,14 @@ class ParticipantSerializer(serializers.ModelSerializer):
                                                            #'mastery_set',
                                                            'participanttimeline_set']
 
+
 class ParticipantIdentitySerializer(serializers.ModelSerializer):
     summoner = SimplifiedSummonerSerializer(read_only=True)
 
     class Meta:
         model = ParticipantIdentity
         fields = ('participant_id', 'summoner')
+
 
 class MatchDetailSerializer(serializers.ModelSerializer):
     participantidentity_set = ParticipantIdentitySerializer(many=True, read_only=True)
