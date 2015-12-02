@@ -73,7 +73,7 @@ CELERY_DEFAULT_ROUTING_KEY = 'task.default'
 
 # TODO: Consolidate routing rules.
 CELERY_ROUTES = {
-    'lol_stats2.celery.store_get_match': {
+    'lol_stats2.celery.store_match': {
         'queue': 'store',
         'exchange': 'default',
         'exchange_type': 'topic',
