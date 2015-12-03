@@ -87,6 +87,7 @@ class Summoner(models.Model):
     last_update = models.DateTimeField(auto_now=True)
     last_matches_update = models.DateTimeField(null=True, blank=True)
     last_leagues_update = models.DateTimeField(null=True, blank=True)
+    last_full_update = models.DateTimeField(null=True, blank=True)  # Used by SingleSummoner
 
     objects = SummonerManager()
 
