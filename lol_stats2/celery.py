@@ -68,8 +68,8 @@ def riot_api(self, kwargs):
     10 req / 10 sec
     500 req / 10 min
 
-    Ideally, the limit we give Celery could be .8 req/sec, but testing has shown
-    that this doesn't always work.
+    A rate_limit of .8/s very rarely generates a 429 API rate limit error with
+    a Retry-After header of 0-1 sec.
 
     This task will retry up to 3 times in the following cases:
      -5xx error, retries in RIOT_API_RETRY_DELAY seconds.
