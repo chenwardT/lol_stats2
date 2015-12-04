@@ -4,12 +4,11 @@ Ensures Summoner pages contain up-to-date data.
 
 import logging
 from datetime import datetime, timedelta
-import time
 
 import pytz
 from django.db import transaction
 
-from summoners.models import Summoner
+from summoners.models import Summoner, InvalidSummonerQuery
 from leagues.models import LeagueEntry
 from riot_api.wrapper import RiotAPI
 from utils.functions import coalesce_task_ids
@@ -103,6 +102,14 @@ class SingleSummoner:
         query_start = datetime.now()
         result = self._query_summoner_by_name().get()
 
+        if result['created'] == 0 and result['updated'] == 0:
+            blacklisted = InvalidSummonerQuery(name=self.std_name, region=self.region)
+            blacklisted.save()
+            logger.debug('Blacklisting query for %s: %s',
+                         InvalidSummonerQuery.TTL, blacklisted)
+
+        # TODO: result['updated'] should never equal 1 since this is a first-time query?
+        # Investigate potential for race condition.
         if result['created'] == 1 or result['updated'] == 1:
             self.get_instance().set_last_full_update()
             self.blocking_full_query()
@@ -126,6 +133,9 @@ class SingleSummoner:
         else:
             return Summoner.objects.filter(std_name=self.std_name,
                                            region=self.region).exists()
+
+    def is_invalid_query(self):
+        return InvalidSummonerQuery.objects.contains(name=self.std_name, region=self.region)
 
     def _query_summoner_by_name(self):
         return RiotAPI.get_summoners(names=self.std_name, region=self.region)
