@@ -202,3 +202,40 @@ class Summoner(models.Model):
 
     def __str__(self):
         return "[{}] {}".format(self.region, self.name)
+
+
+# TODO: Create periodic task to remove expired objects.
+class InvalidSummonerQuery(models.Model):
+    """
+    The presence of one of these records matching a standardized search from our front end results
+    in bypassing the get_summoners task and presenting the user with the summoner-not-found page.
+
+    If a user's search for an unknown summoner results in a 404 from Riot, a matching standardized
+    record is created. Records are removed after an expiry period, upon which a get_summoner request
+    for the queried summoner will be executable, instead of shortcutting to the summoner-not-found
+    page.
+    """
+    TTL = timedelta(seconds=5)
+
+    name = models.CharField(max_length=24)
+    region = models.CharField(max_length=4)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = InvalidSummonerQueryManager()
+
+    def save(self, *args, **kwargs):
+        """
+        Ensure we save the name and region in the standard form.
+        """
+        self.name = standardize_name(self.name)
+        self.region = self.region.upper()
+        super(InvalidSummonerQuery, self).save(*args, **kwargs)
+
+    def is_expired(self):
+        return self.created_at > datetime.now(tz=pytz.utc) + InvalidSummonerQuery.TTL
+
+    def __str__(self):
+        return '[{}] {}'.format(self.region, self.name)
+
+    class Meta:
+        unique_together = ('name', 'region')
