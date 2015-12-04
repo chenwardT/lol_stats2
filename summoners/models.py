@@ -204,6 +204,22 @@ class Summoner(models.Model):
         return "[{}] {}".format(self.region, self.name)
 
 
+class InvalidSummonerQueryManager(models.Manager):
+    def contains(self, name, region):
+        """
+        Returns True if the name-region combination matches an InvalidSummonerQuery object
+        that hasn't expired, otherwise False.
+        """
+        name = standardize_name(name)
+        region = region.upper()
+        query = self.filter(name=name, region=region)
+
+        if query.exists() and not query.get().is_expired():
+            return True
+        else:
+            return False
+
+
 # TODO: Create periodic task to remove expired objects.
 class InvalidSummonerQuery(models.Model):
     """
