@@ -235,7 +235,7 @@ class InvalidSummonerQuery(models.Model):
     for the queried summoner will be executable, instead of shortcutting to the summoner-not-found
     page.
     """
-    TTL = timedelta(seconds=5)
+    TTL = timedelta(seconds=10)
 
     name = models.CharField(max_length=24)
     region = models.CharField(max_length=4)
@@ -243,6 +243,7 @@ class InvalidSummonerQuery(models.Model):
 
     objects = InvalidSummonerQueryManager()
 
+    # TODO: Truncate fields in addition to ensuring front end has max_length limits?
     def save(self, *args, **kwargs):
         """
         Ensure we save the name and region in the standard form.
