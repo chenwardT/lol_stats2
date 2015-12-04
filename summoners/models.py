@@ -214,8 +214,12 @@ class InvalidSummonerQueryManager(models.Manager):
         region = region.upper()
         query = self.filter(name=name, region=region)
 
-        if query.exists() and not query.get().is_expired():
-            return True
+        if query.exists():
+            if query.get().is_expired():
+                query.get().delete()
+                return False
+            else:
+                return True
         else:
             return False
 
