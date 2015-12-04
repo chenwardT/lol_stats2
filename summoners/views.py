@@ -47,6 +47,10 @@ def search(request):
 def show(request, name, region):
     ss = SingleSummoner(name=name, region=region)
 
+    if ss.is_invalid_query():
+        logger.info('Temporarily blacklisted query detected: [%s] %s', ss.region, ss.std_name)
+        return render(request, 'summoners/not_found.html')
+
     if ss.is_known():
         ss.get_instance()
         return render(request, 'summoners/show.html',
