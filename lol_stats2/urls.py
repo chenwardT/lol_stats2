@@ -25,7 +25,7 @@ urlpatterns = patterns('',
 
     url(r'^home/', index),
     url(r'^show/(?P<region>\w+)/(?P<name>[\w ]+)', show, name='show'),
-    url(r'^search/', search),
+    url(r'^search/', search, name='search'),
     url(r'^refresh/', refresh, name='refresh'),
     url(r'^task-status/', task_status, name='task_status'),
     url(r'^summoner-refreshable', is_summoner_refreshable, name='summoner_refreshable'),
