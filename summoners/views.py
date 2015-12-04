@@ -40,8 +40,7 @@ def search(request):
             return redirect('show', name=form.cleaned_data['name'], region=form.cleaned_data['region'])
     else:
         form = SearchForm()
-
-    return render(request, 'summoners/search.html', {'form': form})
+        return render(request, 'summoners/search.html', {'form': form})
 
 
 @ensure_csrf_cookie
@@ -61,7 +60,7 @@ def show(request, name, region):
                            'name': ss.summoner.name,
                            'recent_matches': ss.summoner.matches(10)})
         else:
-            return render(request, 'summoners/show.html')
+            return render(request, 'summoners/not_found.html')
 
 
 def refresh(request):
