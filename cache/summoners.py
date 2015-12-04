@@ -104,7 +104,7 @@ class SingleSummoner:
         result = self._query_summoner_by_name().get()
 
         if result['created'] == 1 or result['updated'] == 1:
-            self.get_instance()
+            self.get_instance().set_last_full_update()
             self.blocking_full_query()
 
             logger.info('complete: found summoner and got data ({})'.format(datetime.now() - query_start))
@@ -236,6 +236,7 @@ class SingleSummoner:
         -ranked stats of last season
         """
         logger.info('started on [{}] {}'.format(self.region, self.std_name))
+        self.get_instance().set_last_full_update()
         match_job = self._query_match_history()
         league_job = self._query_league()
 
