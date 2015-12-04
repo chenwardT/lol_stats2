@@ -22,7 +22,7 @@ class LeagueManager(models.Manager):
 
         if possibly_extant_league.exists():
             league = possibly_extant_league.get()
-            return self.update_league(league, attrs, region)
+            return self.update_league(league, attrs)
         else:
             return self.create_league(attrs, region)
 
@@ -36,7 +36,7 @@ class LeagueManager(models.Manager):
 
     # TODO: Allow timedelta to be passed in.
     @staticmethod
-    def update_league(self, league, attrs, region):
+    def update_league(league, attrs):
         if league.last_update < (datetime.now(tz=pytz.utc) - timedelta(seconds=1)):
             logger.debug(league)
             league.last_update = datetime.now(tz=pytz.utc)
