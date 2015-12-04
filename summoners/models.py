@@ -191,6 +191,10 @@ class Summoner(models.Model):
     def is_leagues_refreshable(self):
         return self.last_leagues_update < datetime.now(tz=pytz.utc) - Summoner.LEAGUES_TTL
 
+    def set_last_full_update(self):
+        self.last_full_update = datetime.now(tz=pytz.utc)
+        self.save()
+
     class Meta:
         unique_together = ('summoner_id', 'region')
         index_together = ('summoner_id', 'region')
