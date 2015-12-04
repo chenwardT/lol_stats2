@@ -63,6 +63,7 @@ class Summoner(models.Model):
     SUMMONER_TTL = timedelta(seconds=1)
     MATCHES_TTL = timedelta(minutes=1)
     LEAGUES_TTL = timedelta(minutes=1)
+    USER_REFRESH_TTL = timedelta(minutes=20)    # Cooldown between user-initiated refreshes
 
     summoner_id = models.BigIntegerField(db_index=True)
 
@@ -179,7 +180,10 @@ class Summoner(models.Model):
             .get(player_or_team_id=self.summoner_id)
 
     def is_refreshable(self):
-        return self.last_update < datetime.now(tz=pytz.utc) - Summoner.SUMMONER_TTL
+        if self.last_full_update:
+            return self.last_full_update < datetime.now(tz=pytz.utc) - Summoner.USER_REFRESH_TTL
+        else:
+            return True
 
     def is_matches_refreshable(self):
         return self.last_matches_update < datetime.now(tz=pytz.utc) - Summoner.MATCHES_TTL
