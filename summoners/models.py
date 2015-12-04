@@ -248,7 +248,7 @@ class InvalidSummonerQuery(models.Model):
         super(InvalidSummonerQuery, self).save(*args, **kwargs)
 
     def is_expired(self):
-        return self.created_at > datetime.now(tz=pytz.utc) + InvalidSummonerQuery.TTL
+        return datetime.now(tz=pytz.utc) > self.created_at + InvalidSummonerQuery.TTL
 
     def __str__(self):
         return '[{}] {}'.format(self.region, self.name)
