@@ -223,6 +223,20 @@ class SingleSummoner:
         else:
             return False
 
+    def is_refreshable(self):
+        """
+        Returns True if enough time has passed since the summoner was last refreshed by a user
+        to do it again, or if the summoner isn't known.
+
+        Otherwise return False.
+        """
+        if self.is_known():
+            return self.get_instance().is_refreshable()
+        else:
+            # This may be a good place to address unlimited querying of invalid summoners.
+            # See https://github.com/chenwardT/lol_stats2/issues/24
+            return True
+
     def full_query(self):
         """
         Performs a query of all endpoints required to populate page:
