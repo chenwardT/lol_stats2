@@ -44,6 +44,7 @@ INSTALLED_APPS = (
     'spells',
     'leagues',
     'matches',
+    'stats',
 )
 
 RUNSERVERPLUS_SERVER_ADDRESS_PORT = '0.0.0.0:8001'
