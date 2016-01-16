@@ -94,6 +94,9 @@ class ChampionStats(models.Model):
 
     objects = ChampionStatsManager()
 
+    class Meta:
+        unique_together = ['bucket', 'champion_id']
+
     def __str__(self):
         champion_model = apps.get_model('champions', 'Champion')
         return '{} {} {} {} {}'.format(self.bucket.region,
