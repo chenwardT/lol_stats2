@@ -79,7 +79,7 @@ class Champion(models.Model):
 
         ChampionStats.objects.upsert(lane=lane, role=role, version=version,
                                      region=region, champion_id=self.champion_id,
-                                     update_fields={'pick_count': result})
+                                     update_fields={'total_picks': result})
 
         return result
 
@@ -121,7 +121,7 @@ class Champion(models.Model):
 
         ChampionStats.objects.upsert(lane=lane, role=role, version=version,
                                      region=region, champion_id=self.champion_id,
-                                     update_fields={'win_count': result})
+                                     update_fields={'total_wins': result})
 
         return result
 
