@@ -36,6 +36,9 @@ class Bucket(models.Model):
     class Meta:
         unique_together = ('version', 'region', 'lane', 'role')
 
+    def __str__(self):
+        return '{} {} {} {}'.format(self.region, self.version, self.lane, self.role)
+
 class ChampionStatsManager(models.Manager):
     # TODO: Compare perf w/postgres 9.5 UPSERT (not used by Django yet)
     def upsert(self, lane, role, version, region, champion_id, update_fields):
