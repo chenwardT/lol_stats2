@@ -86,3 +86,11 @@ def coalesce_task_ids(results):
 
 def standardize_name(name):
         return name.replace(' ', '').lower()
+
+
+def is_complete_version(version_str):
+    """
+    Returns True if a string contains a complete version, like '5.21.0.313'
+    otherwise False, like when the string is an incomplete version, e.g. '5.21'.
+    """
+    return True if len(version_str.split('.')) == 4 else False
