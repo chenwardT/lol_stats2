@@ -16,10 +16,12 @@ from riotwatcher.riotwatcher import (RiotWatcher,
                                      LoLException,
                                      error_400,
                                      error_401,
+                                     error_403,
                                      error_404,
                                      error_429,
                                      error_500,
-                                     error_503)
+                                     error_503,
+                                     error_504)
 from django_pglocks import advisory_lock
 from django.conf import settings
 
@@ -94,6 +96,8 @@ def riot_api(self, kwargs):
             logger.error('400 error')
         elif e == error_401:
             logger.error('401 error')
+        elif e == error_403:
+            logger.critical('403 error, KEY REVOKED!')
         elif e == error_404:
             logger.info('404 error')
         elif e == error_429:
@@ -123,12 +127,18 @@ def riot_api(self, kwargs):
                 raise self.retry()
             except MaxRetriesExceededError as e:
                 logger.error('Max retries exceeded, %s', e)
+        elif e == error_504:
+            logger.error('504 error, retrying in %s sec', RIOT_API_RETRY_DELAY)
+            try:
+                raise self.retry()
+            except MaxRetriesExceededError as e:
+                logger.error('Max retries exceeded, %s', e)
         else:
-            logger.exception('Unhandled LoLException (did riotwatcher get updated?)')
+            logger.exception('Unhandled LoLException (did riotwatcher get updated?) - %s', e)
             raise
         result = {}
-    except:
-        logger.exception('Unhandled exception!')
+    except Exception as e:
+        logger.exception('Unhandled exception! - %s', e)
         raise
 
     return result
@@ -271,6 +281,7 @@ def store_league(result, region):
         if result != {}:
             for summoner_id in result:
                 logger.debug('Reading leagues for summoner ID {}'.format(summoner_id))
+
                 for league in result[summoner_id]:
                     League.objects.create_or_update_league(league, region)
 
