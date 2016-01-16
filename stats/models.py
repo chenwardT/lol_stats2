@@ -5,7 +5,8 @@ class Bucket(models.Model):
     # TODO: Manage least-significant version field, i.e. ability to merge 5.2.0.22, 5.2.0.46, etc
     version = models.CharField(max_length=16)     # ex. '5.22.0.345', 'ALL'
     region = models.CharField(max_length=8)       # ex. 'NA', 'EUW'
-    role = models.CharField(max_length=8)         # ex. 'Middle', 'Support'
+    lane = models.CharField(max_length=16)        # ex. 'BOTTOM'
+    role = models.CharField(max_length=16)        # ex. 'DUO_SUPPORT'
     created_at = models.DateTimeField(auto_now_add=True)
 
 
