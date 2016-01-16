@@ -8,26 +8,10 @@ class Bucket(models.Model):
     Each of version, lane, role, and region may be 'ALL' to signify a result
     calculated without filtering on that version, lane, role, or region, respectively.
 
-    Known combinations of (LANE, ROLE):
-
-    ('BOTTOM', 'DUO')
-    ('BOTTOM', 'DUO_CARRY')
-    ('BOTTOM', 'DUO_SUPPORT')
-    ('BOTTOM', 'NONE')
-    ('BOTTOM', 'SOLO')
-    ('JUNGLE', 'NONE')
-    ('MIDDLE', 'DUO')
-    ('MIDDLE', 'DUO_CARRY')
-    ('MIDDLE', 'DUO_SUPPORT')
-    ('MIDDLE', 'NONE')
-    ('MIDDLE', 'SOLO')
-    ('TOP',    'DUO')
-    ('TOP',    'DUO_CARRY')
-    ('TOP',    'DUO_SUPPORT')
-    ('TOP',    'NONE')
-    ('TOP',    'SOLO')
+    See utils.constants for valid values.
     """
     version = models.CharField(max_length=16)     # ex. '5.22.0.345', 'ALL'
+    is_exact_version = models.BooleanField()      # See utils.functions.is_complete_version
     region = models.CharField(max_length=8)       # ex. 'EUW', 'ALL'
     lane = models.CharField(max_length=16)
     role = models.CharField(max_length=16)
@@ -41,11 +25,12 @@ class Bucket(models.Model):
 
 class ChampionStatsManager(models.Manager):
     # TODO: Compare perf w/postgres 9.5 UPSERT (not used by Django yet)
-    def upsert(self, lane, role, version, region, champion_id, update_fields):
+    def upsert(self, lane, role, version, is_exact_version, region, champion_id, update_fields):
         with transaction.atomic():
             bucket = Bucket.objects.get_or_create(lane=lane,
                                                   role=role,
                                                   version=version,
+                                                  is_exact_version=is_exact_version,
                                                   region=region)[0]
             champ_stats_obj = bucket.championstats_set.update_or_create(champion_id=champion_id,
                                                                         defaults=update_fields)
