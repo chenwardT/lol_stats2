@@ -44,7 +44,7 @@ class ChampionStats(models.Model):
     total_enemy_jungle_cs = models.BigIntegerField()
     avg_enemy_jungle_cs = models.IntegerField()
     # CS obtained from friendly jungle
-    total_team_jugnle_cs = models.BigIntegerField()
+    total_team_jungle_cs = models.BigIntegerField()
     avg_team_jungle_cs = models.IntegerField()
     total_gold_earned = models.BigIntegerField()
     avg_gold_earned = models.IntegerField()
