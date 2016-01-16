@@ -1,14 +1,52 @@
-from django.db import models
+from django.db import models, transaction
+from django.apps import apps
 
-
+# TODO: Manage least-significant version field, i.e. ability to merge 5.2.0.22, 5.2.0.46, etc
 class Bucket(models.Model):
-    # TODO: Manage least-significant version field, i.e. ability to merge 5.2.0.22, 5.2.0.46, etc
+    """
+    A bucket contains filters that apply to all champions that are analyzed.
+    Each of version, lane, role, and region may be 'ALL' to signify a result
+    calculated without filtering on that version, lane, role, or region, respectively.
+
+    Known combinations of (LANE, ROLE):
+
+    ('BOTTOM', 'DUO')
+    ('BOTTOM', 'DUO_CARRY')
+    ('BOTTOM', 'DUO_SUPPORT')
+    ('BOTTOM', 'NONE')
+    ('BOTTOM', 'SOLO')
+    ('JUNGLE', 'NONE')
+    ('MIDDLE', 'DUO')
+    ('MIDDLE', 'DUO_CARRY')
+    ('MIDDLE', 'DUO_SUPPORT')
+    ('MIDDLE', 'NONE')
+    ('MIDDLE', 'SOLO')
+    ('TOP',    'DUO')
+    ('TOP',    'DUO_CARRY')
+    ('TOP',    'DUO_SUPPORT')
+    ('TOP',    'NONE')
+    ('TOP',    'SOLO')
+    """
     version = models.CharField(max_length=16)     # ex. '5.22.0.345', 'ALL'
-    region = models.CharField(max_length=8)       # ex. 'NA', 'EUW'
-    lane = models.CharField(max_length=16)        # ex. 'BOTTOM'
-    role = models.CharField(max_length=16)        # ex. 'DUO_SUPPORT'
+    region = models.CharField(max_length=8)       # ex. 'EUW', 'ALL'
+    lane = models.CharField(max_length=16)
+    role = models.CharField(max_length=16)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = ('version', 'region', 'lane', 'role')
+
+class ChampionStatsManager(models.Manager):
+    # TODO: Compare perf w/postgres 9.5 UPSERT (not used by Django yet)
+    def upsert(self, lane, role, version, region, champion_id, update_fields):
+        with transaction.atomic():
+            bucket = Bucket.objects.get_or_create(lane=lane,
+                                                  role=role,
+                                                  version=version,
+                                                  region=region)[0]
+            champ_stats_obj = bucket.championstats_set.update_or_create(champion_id=champion_id,
+                                                                        defaults=update_fields)
+            return champ_stats_obj[0]
 
 class ChampionStats(models.Model):
     bucket = models.ForeignKey(Bucket)
@@ -53,3 +91,13 @@ class ChampionStats(models.Model):
     #       Strongly dependent on win rate.
     role_position = models.IntegerField(blank=True, null=True)
     position_delta = models.IntegerField(blank=True, null=True)
+
+    objects = ChampionStatsManager()
+
+    def __str__(self):
+        champion_model = apps.get_model('champions', 'Champion')
+        return '{} {} {} {} {}'.format(self.bucket.region,
+                                       self.bucket.version,
+                                       champion_model.objects.get(champion_id=self.champion_id),
+                                       self.bucket.lane,
+                                       self.bucket.role)
