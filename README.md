@@ -122,21 +122,10 @@ See [https://www.rabbitmq.com/management.html](https://www.rabbitmq.com/manageme
 
 Before running tests, ensure CELERY_ALWAYS_EAGER is set. See bottom of __Setup__ section.
 
-If Selenium throws:
+Selenium tests use PyVirtualDisplay to run in a headless environment. PyVirtualDisplay in turn
+requires Xvfb, Xephyr, or Xvnc to be installed.
 
-    selenium.common.exceptions.WebDriverException: Message: The browser appears to have 
-    exited before we could connect. If you specified a log_file in the FirefoxBinary
-    constructor, check it for details.
-
-...check the following things:
-
-- You have a DISPLAY environment variable set (:0 by default):
-
-    - `export DISPLAY=:0`
-
-- X is running on that display.
-
-- Someone may need to be logged into your X display manager.
-
-Alternatively, you can use pyvirtualdisplay if you are running in a headless
-configuration.
+To run tests:
+```
+./manage.py test
+```
