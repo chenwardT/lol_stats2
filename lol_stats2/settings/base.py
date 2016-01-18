@@ -14,6 +14,8 @@ import os
 from django.core.exceptions import ImproperlyConfigured
 from kombu import Queue
 
+from .secrets import DJANGO_SECRET_KEY, PG_USER, PG_PASS
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 def get_env_variable(var_name):
@@ -23,7 +25,7 @@ def get_env_variable(var_name):
         error_msg = "Set the %s environment variable" % var_name
         raise ImproperlyConfigured(error_msg)
 
-SECRET_KEY = get_env_variable('DJANGO_SECRET_KEY')
+SECRET_KEY = DJANGO_SECRET_KEY
 
 ALLOWED_HOSTS = []
 
@@ -196,8 +198,8 @@ DATABASES = {
         'HOST': '127.0.0.1',
         'PORT': '5432',
         'NAME': 'lol_stats2',
-        'USER': 'chen',
-        'PASSWORD': get_env_variable('PG_PASS'),
+        'USER': PG_USER,
+        'PASSWORD': PG_PASS,
     }
 }
 

@@ -9,3 +9,6 @@ htmlcov/
 .coverage
 *.pid
 log/
+junk/
+docs/
+lol_stats2/settings/secrets.py
