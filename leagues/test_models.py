@@ -1,6 +1,8 @@
-from time import sleep
+from datetime import datetime, timedelta
 
 from django.test import TestCase
+from freezegun import freeze_time
+import pytz
 
 from .models import League, LeagueEntry
 
@@ -112,8 +114,9 @@ class LeagueTestCase(TestCase):
         updated_attrs['entries'][0]['playerOrTeamName'] = 'challenger3'
         updated_attrs['entries'][1]['playerOrTeamName'] = 'challenger4'
 
-        sleep(1)
-        League.objects.update_league(self.created_league, self.league_attrs_different_entries)
+        # TODO: Set timedelta from TTL in called method.
+        with freeze_time(datetime.now(tz=pytz.utc) + timedelta(seconds=1)):
+            League.objects.update_league(self.created_league, self.league_attrs_different_entries)
 
         new_names = [name for name in league_entries_queryset.values('player_or_team_name')]
 
@@ -132,8 +135,9 @@ class LeagueTestCase(TestCase):
         updated_attrs['entries'][0]['playerOrTeamName'] = 'challenger3'
         updated_attrs['entries'][1]['playerOrTeamName'] = 'challenger4'
 
-        sleep(1)
-        League.objects.create_or_update_league(self.league_attrs_different_entries, self.region)
+        # TODO: Set timedelta from TTL in called method.
+        with freeze_time(datetime.now(tz=pytz.utc) + timedelta(seconds=1)):
+            League.objects.create_or_update_league(self.league_attrs_different_entries, self.region)
 
         new_names = [name for name in league_entries_queryset.values('player_or_team_name')]
 
