@@ -28,7 +28,6 @@ from django.conf import settings
 from summoners.models import Summoner
 from champions.models import Champion
 from spells.models import SummonerSpell
-from games.models import Game
 from leagues.models import League
 from matches.models import MatchDetail
 
@@ -233,24 +232,6 @@ def store_summoner_spell_list(result):
         SummonerSpell.objects.bulk_create(spell_objs)
 
     logger.info('Stored {} summoner spells'.format(len(result['data'])))
-
-
-# Unused, as MatchDetail is all we're using for now (ranked games).
-# TODO: Use game IDs to get match data.
-# This way, you get full participant data, instead of just the 1 player's items, etc.
-@app.task
-def store_recent_games(result, summoner_id, region):
-    """
-    Callback that stores the result of RiotWatcher get_recent_games calls.
-    """
-    for attrs in result['games']:
-        # We don't want to duplicate existing games, so compare each
-        # by game_id and region.
-        if not Game.objects.filter(game_id=attrs['gameId'],
-                                   region=region).exists():
-            Game.objects.create_game(attrs, summoner_id, region)
-
-    logger.info('Stored {} games'.format(len(result['games'])))
 
 
 @app.task(ignore_result=True)
