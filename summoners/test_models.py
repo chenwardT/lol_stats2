@@ -1,4 +1,8 @@
+from datetime import datetime, timedelta
+
+import pytz
 from django.test import TestCase
+from freezegun import freeze_time
 
 from .models import Summoner
 
@@ -76,8 +80,10 @@ class SummonerTestCase(TestCase):
         old_name = summoner.name
         updated_attrs_from_match = self.attrs_from_match.copy()
         updated_attrs_from_match['summonerName'] = 'Another Name'
-        Summoner.objects.create_or_update_summoner_from_match(region,
-                                                              updated_attrs_from_match)
+
+        with freeze_time(datetime.now(tz=pytz.utc) + timedelta(days=7)):
+            Summoner.objects.create_or_update_summoner_from_match(region,
+                                                                  updated_attrs_from_match)
         summoner.refresh_from_db()
         new_name = summoner.name
 
