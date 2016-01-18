@@ -31,7 +31,7 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
-INSTALLED_APPS = (
+INSTALLED_APPS = [
     'grappelli',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -47,7 +47,7 @@ INSTALLED_APPS = (
     'leagues',
     'matches',
     'stats',
-)
+]
 
 RUNSERVERPLUS_SERVER_ADDRESS_PORT = '0.0.0.0:8001'
 
@@ -95,19 +95,19 @@ CELERY_ROUTES = {
 if 'CELERY_ALWAYS_EAGER' in os.environ:
     CELERY_ALWAYS_EAGER = True
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE_CLASSES = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-)
+]
 
-TEMPLATE_CONTEXT_PROCESSORS = (
+TEMPLATE_CONTEXT_PROCESSORS = [
     'django.contrib.auth.context_processors.auth',
     'django.core.context_processors.request',
-)
+]
 
 ROOT_URLCONF = 'lol_stats2.urls'
 
