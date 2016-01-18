@@ -30,6 +30,7 @@ from champions.models import Champion
 from spells.models import SummonerSpell
 from leagues.models import League
 from matches.models import MatchDetail
+from lol_stats2.settings.secrets import RIOT_API_KEY
 
 # Currently only used in the event of a 5xx HTTP response code from Riot's API.
 RIOT_API_RETRY_DELAY = 1
@@ -52,7 +53,7 @@ app = Celery('lol_stats2',
 app.config_from_object('django.conf:settings')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
-riot_watcher = RiotWatcher(os.environ['RIOT_API_KEY'])
+riot_watcher = RiotWatcher(RIOT_API_KEY)
 
 
 # TODO: Move tasks into separate modules.
