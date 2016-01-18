@@ -12,6 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 class LeagueManager(models.Manager):
+    # NOTE: Something called by this is changing the values of passed attrs.
+    # See leagues/test_models re: need to use a separate entries dict instead of
+    # being able to mutate the original dict used to create the league entries.
+    # After being used, it contains 'series_losses' keys in place of the original 'losses'
+    # within the miniseries dict.
     def create_or_update_league(self, attrs, region):
         region = region.upper()
         logger.debug('region: %s, attrs: %s', region, attrs)
@@ -91,6 +96,9 @@ class LeagueEntryManager(models.Manager):
             return flattened
 
     def create_entries(self, attrs):
+        """
+        Bulk create LeagueEntry records from a dict containing a list of entries.
+        """
         entries = attrs['entries']
         underscore_entries = [entry for entry in map(underscore_dict, entries)]
         flattened_entries = [entry for entry in map(self._flatten_entry_if_series, underscore_entries)]
