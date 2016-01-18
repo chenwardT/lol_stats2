@@ -145,8 +145,7 @@ class SingleSummoner:
 
     def get_instance(self):
         """
-        Get the appropriate model instance and assign it to self.summoner, where
-        it is cached.
+        Get the appropriate model instance and cache it to self.summoner.
 
         Returns summoner instance if found, otherwise None.
         """
