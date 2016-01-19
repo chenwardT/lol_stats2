@@ -11,7 +11,8 @@ from django.db import transaction
 from summoners.models import Summoner, InvalidSummonerQuery
 from leagues.models import LeagueEntry
 from riot_api.wrapper import RiotAPI
-from utils.functions import coalesce_task_ids
+from utils.functions import coalesce_task_ids, standardize_name
+from utils.constants import REGIONS
 
 logger = logging.getLogger(__name__)
 
@@ -21,34 +22,32 @@ class SingleSummoner:
     Contains methods required to maintain the front end's summoner detail page.
 
     Expected to receive region and either A) summoner_id or B) name.
-    The name is converted to the standardized name.
+    The name is converted to standard form (all lowercase, spaces stripped).
     A name is expected to be received when initialized by user actions
     (ex. a user searching for a summoner would be by region + name).
 
     After initialization, the expected use is determining if the summoner
     is known (stored in the DB).
 
-    If it is known, the page can be loaded w/whatever data we have on them.
+    If it is known, the page can be loaded w/whatever data we have on them
+    and flow control leaves this class.
 
-    If they are not known, then we have to perform a full query.
+    If they are not known, then we have to call first_time_query.
 
     Additionally, a partial query can be performed by the user which refreshes
     data using the region passed to __init__, but uses the summoner ID since
     that will always refer to the same account.
     """
-    _ALLOWED_REGIONS = ('BR', 'EUNE', 'EUW', 'KR', 'LAN', 'LAS', 'NA', 'OCE',
-                        'TR', 'RU')
     _SUMMONER_UPDATE_INTERVAL = timedelta(minutes=15)
     _MATCH_HISTORY_UPDATE_INTERVAL = timedelta(minutes=15)
     _LAST_MATCH_TIME_THRESHOLD = timedelta(minutes=15)
     _LEAGUE_UPDATE_INTERVAL = timedelta(minutes=15)
 
-    # TODO: Rewrite init to not wait on get_summoners if we don't already know the summoner.
     def __init__(self, name=None, summoner_id=None, region=None):
         # These attributes are only used to get the summoner instance
         # and should not be referenced after __init__ completes.
         # TODO: change from object scope to method scope?
-        self.std_name = name.lower().replace(' ', '') if name else None
+        self.std_name = standardize_name(name) if name else None
         self.summoner_id = summoner_id
         self.region = region.upper()
         self.summoner = None
@@ -58,11 +57,11 @@ class SingleSummoner:
 
         # TODO: Should this be caught at a lower level, and then we can
         # try/except here and include exc_info in log?
-        if self.region not in self._ALLOWED_REGIONS:
+        if self.region not in REGIONS:
             logger.error('Invalid region: {}; must be one of {}'
-                         .format(self.region, self._ALLOWED_REGIONS))
+                         .format(self.region, REGIONS))
             raise ValueError('Invalid region: {}; must be one of {}'
-                             .format(self.region, self._ALLOWED_REGIONS))
+                             .format(self.region, REGIONS))
 
         if not (self.summoner_id or self.std_name):
             logger.error('Expecting summoner_id or name to be present.')
@@ -94,13 +93,15 @@ class SingleSummoner:
         Synchronous query of Riot API for summoner that isn't known.
         All tasks must finish before summoner detail page load.
 
-        If 404 response, then show "Summoner not found" page.
+        If a 404 response is returned, the "Summoner not found" page should be shown.
         Else follow up with a full query of everything else and load summoner detail page.
 
-        Returns True if the summoner exists (and was fetched or updated), else False.
+        Returns True if the summoner exists and was fetched (or updated, although that
+        should be impossible, barring race conditions), else False.
         """
         query_start = datetime.now()
         result = self._query_summoner_by_name().get()
+
 
         if result['created'] == 0 and result['updated'] == 0:
             blacklisted = InvalidSummonerQuery(name=self.std_name, region=self.region)
@@ -257,8 +258,11 @@ class SingleSummoner:
         -stats summary of last season
         -ranked stats of this season
         -ranked stats of last season
+
+        Requires self.summoner to exist.
         """
         logger.info('started on [{}] {}'.format(self.region, self.std_name))
+
         self.get_instance().set_last_full_update()
         match_job = self._query_match_history()
         league_job = self._query_league()
