@@ -209,6 +209,8 @@ class InvalidSummonerQueryManager(models.Manager):
         """
         Returns True if the name-region combination matches an InvalidSummonerQuery object
         that hasn't expired, otherwise False.
+
+        If a matching ISQ record is found, but has expired, then it is deleted.
         """
         name = standardize_name(name)
         region = region.upper()
@@ -222,7 +224,6 @@ class InvalidSummonerQueryManager(models.Manager):
                 return True
         else:
             return False
-
 
 # TODO: Create periodic task to remove expired objects.
 class InvalidSummonerQuery(models.Model):
