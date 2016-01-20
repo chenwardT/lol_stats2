@@ -10,77 +10,79 @@ from .models import League, LeagueEntry
 class LeagueTestCase(TestCase):
     def setUp(self):
         self.region = 'KR'
-        self.league_attrs = {'queue': 'RANKED_SOLO_5x5',
-                      'name': "Faker's Fighters",
-                      'tier': 'DIAMOND',
-                      'entries': [
-                          {'division': 'I',
-                           'isFreshBlood': True,
-                           'isHotStreak': False,
-                           'isInactive': False,
-                           'isVeteran': True,
-                           'leaguePoints': 99,
-                           'playerOrTeamId': 456789,
-                           'playerOrTeamName': 'challenger1',
-                           'wins': 890,
-                           'losses': 569,
-                           'miniSeries':
-                               {'losses': 1,
-                                'progress': 'WWL',
-                                'target': 3,
-                                'wins': 2}},
-                          {'division': 'IV',
-                           'isFreshBlood': False,
-                           'isHotStreak': False,
-                           'isInactive': False,
-                           'isVeteran': True,
-                           'leaguePoints': 56,
-                           'playerOrTeamId': 123456,
-                           'playerOrTeamName': 'challenger2',
-                           'wins': 231,
-                           'losses': 72,
-                           'miniSeries':
-                               {'losses': 1,
-                                'progress': 'WWL',
-                                'target': 3,
-                                'wins': 2}}
-                      ]}
+        self.league_attrs = {
+            'queue': 'RANKED_SOLO_5x5',
+            'name': "Faker's Fighters",
+            'tier': 'DIAMOND',
+            'entries': [
+                {'division': 'I',
+                 'isFreshBlood': True,
+                 'isHotStreak': False,
+                 'isInactive': False,
+                 'isVeteran': True,
+                 'leaguePoints': 99,
+                 'playerOrTeamId': 456789,
+                 'playerOrTeamName': 'challenger1',
+                 'wins': 890,
+                 'losses': 569,
+                 'miniSeries':
+                     {'losses': 1,
+                      'progress': 'WWL',
+                      'target': 3,
+                      'wins': 2}},
+                {'division': 'IV',
+                 'isFreshBlood': False,
+                 'isHotStreak': False,
+                 'isInactive': False,
+                 'isVeteran': True,
+                 'leaguePoints': 56,
+                 'playerOrTeamId': 123456,
+                 'playerOrTeamName': 'challenger2',
+                 'wins': 231,
+                 'losses': 72,
+                 'miniSeries':
+                     {'losses': 1,
+                      'progress': 'WWL',
+                      'target': 3,
+                      'wins': 2}}
+            ]}
 
-        self.league_attrs_different_entries = {'queue': 'RANKED_SOLO_5x5',
-                 'name': "Faker's Fighters",
-                 'tier': 'DIAMOND',
-                 'entries': [
-                     {'division': 'I',
-                      'isFreshBlood': True,
-                      'isHotStreak': False,
-                      'isInactive': False,
-                      'isVeteran': True,
-                      'leaguePoints': 23,
-                      'playerOrTeamId': 7777,
-                      'playerOrTeamName': 'challenger3',
-                      'wins': 123,
-                      'losses': 321,
-                      'miniSeries':
-                          {'losses': 2,
-                           'progress': 'WLWL',
-                           'target': 3,
-                           'wins': 2}},
-                     {'division': 'IV',
-                      'isFreshBlood': False,
-                      'isHotStreak': True,
-                      'isInactive': False,
-                      'isVeteran': True,
-                      'leaguePoints': 44,
-                      'playerOrTeamId': 8888,
-                      'playerOrTeamName': 'challenger4',
-                      'wins': 231,
-                      'losses': 72,
-                      'miniSeries':
-                          {'losses': 1,
-                           'progress': 'WWL',
-                           'target': 3,
-                           'wins': 2}}
-                 ]}
+        self.league_attrs_different_entries = {
+            'queue': 'RANKED_SOLO_5x5',
+            'name': "Faker's Fighters",
+            'tier': 'DIAMOND',
+            'entries': [
+                {'division': 'I',
+                 'isFreshBlood': True,
+                 'isHotStreak': False,
+                 'isInactive': False,
+                 'isVeteran': True,
+                 'leaguePoints': 23,
+                 'playerOrTeamId': 7777,
+                 'playerOrTeamName': 'challenger3',
+                 'wins': 123,
+                 'losses': 321,
+                 'miniSeries':
+                     {'losses': 2,
+                      'progress': 'WLWL',
+                      'target': 3,
+                      'wins': 2}},
+                {'division': 'IV',
+                 'isFreshBlood': False,
+                 'isHotStreak': True,
+                 'isInactive': False,
+                 'isVeteran': True,
+                 'leaguePoints': 44,
+                 'playerOrTeamId': 8888,
+                 'playerOrTeamName': 'challenger4',
+                 'wins': 231,
+                 'losses': 72,
+                 'miniSeries':
+                     {'losses': 1,
+                      'progress': 'WWL',
+                      'target': 3,
+                      'wins': 2}}
+            ]}
         self.created_league = League.objects.create_league(self.league_attrs, self.region)
 
     def test_create(self):
@@ -209,3 +211,10 @@ class LeagueEntryTestCase(TestCase):
 
         self.assertEqual(created.player_or_team_id, '456789')
         self.assertIsNone(created.series_progress)
+
+    def test_flattening_of_entry_with_miniseries(self):
+        full_entry = self.attrs_base.copy()
+        full_entry.update(self.attrs_miniseries)
+
+        self.assertNotIn('series_losses',
+                         LeagueEntry.objects._flatten_entry_if_series(full_entry))
