@@ -42,8 +42,8 @@ class Champion(models.Model):
     # It should be expanded once dynamic summing is known to work correctly.
     # See dynamic_participant_field_sum.
     #
-    # Compare with stats like total_picks, where result is based on summing a count
-    # of matches.
+    # Compare with stats like total_picks, where result is based on summing a
+    # count of matches.
     summable_participant_fields = [
         'assists',
         'deaths',
@@ -87,15 +87,15 @@ class Champion(models.Model):
 
         Valid options for `version` are:
             -Complete version string, e.g. '5.21.0.413'.
-            -Incomplete version string, e.g. '5.21'. This will match the most significant
-             version numbers. Any string containing less than 4 groups of integers will
-             be considered incomplete.
+            -Incomplete version string, e.g. '5.21'. This will match the
+             most significant version numbers.
+             See utils.functions.is_complete_version.
             -'ALL'. This will match all versions.
 
         If `region` is omitted, it will default to 'NA'.
 
-        Note that the summing logic only applies to ranked matches, where only one team
-        may have any given champion.
+        Note that the summing logic only applies to ranked matches, where only
+        one team may have any given champion.
         """
         Participant = apps.get_model('matches', 'Participant')
 
@@ -122,7 +122,8 @@ class Champion(models.Model):
 
     def total_bans(self, version='ALL', region='NA'):
         """
-        Returns the number of matches that this champion was banned in.
+        Returns and stores the number of matches that this champion was
+        banned in.
         """
         MatchDetail = apps.get_model('matches', 'MatchDetail')
 
@@ -147,7 +148,8 @@ class Champion(models.Model):
 
     def total_wins(self, lane='ALL', role='ALL', version='ALL', region='NA'):
         """
-        Returns the number of matches that this champion has participated in and won.
+        Returns and stores the number of matches that this champion has
+        participated in and won.
 
         See total_picks method on this class for a description of parameters.
         """
@@ -179,7 +181,8 @@ class Champion(models.Model):
 
     def total_losses(self, lane='ALL', role='ALL', version='ALL', region='NA'):
         """
-        Returns the number of matches that this champion has participated in and won.
+        Returns and stores the number of matches that this champion has
+        participated in and won.
 
         See total_picks method on this class for a description of parameters.
         """
@@ -257,11 +260,3 @@ class Champion(models.Model):
                                          update_fields={'avg_{}'.format(field): result})
 
         return result
-
-    # TODO: Unused for now - consider moving calculations to separate module.
-    def win_rate(self, lane, role, version=None, region='NA'):
-        try:
-            return self.total_wins(lane, role, version, region) / self.total_picks(lane, role, version, region) * 100
-        except ZeroDivisionError:
-            logger.exception('ZeroDivisionError: are there 0 matches?')
-            return -1
