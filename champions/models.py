@@ -44,12 +44,18 @@ class Champion(models.Model):
     #
     # Compare with stats like total_picks, where result is based on summing a
     # count of matches.
-    summable_participant_fields = [
+    aggregable_participant_fields = [
         'assists',
         'deaths',
         'gold_earned',
         'kills',
-        'minions_killed'
+        'largest_killing_spree',
+        'total_damage_dealt',
+        'total_damage_taken',
+        'total_heal',
+        'minions_killed',
+        'neutral_minions_killed_enemy_jungle',
+        'neutral_minions_killed_friendly_jungle',
     ]
 
     def __str__(self):
