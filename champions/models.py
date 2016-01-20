@@ -104,6 +104,31 @@ class Champion(models.Model):
 
         return result
 
+    def total_bans(self, version='ALL', region='NA'):
+        """
+        Returns the number of matches that this champion was banned in.
+        """
+        MatchDetail = apps.get_model('matches', 'MatchDetail')
+
+        queryset = MatchDetail.objects.filter(region=region) \
+            .filter(team__bannedchampion__champion_id=self.champion_id)
+
+        if version == 'LATEST':
+            version = get_latest_version()
+
+        complete_version = is_complete_version(version)
+
+        if version and version != 'ALL':
+            if complete_version:
+                queryset = queryset.filter(match_version=version)
+            else:
+                queryset = queryset.filter(match_version__startswith=version)
+
+        result = queryset.count()
+
+        ChampionStats.objects.upsert('ANY', 'ANY', version, complete_version, region,
+                                     self.champion_id, {'sum_bans': result})
+
     def total_wins(self, lane='ALL', role='ALL', version='ALL', region='NA'):
         """
         Returns the number of matches that this champion has participated in and won.
