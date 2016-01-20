@@ -4,7 +4,7 @@ from django.db import models
 from django.apps import apps
 
 from stats.models import ChampionStats
-from utils.functions import is_complete_version
+from utils.functions import is_complete_version, get_latest_version
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +39,35 @@ class Champion(models.Model):
     def __str__(self):
         return self.name
 
+    # TODO: Create a means of determining how to traverse related tables so we can get to
+    # match_version from any starting point/model manager.
+    def _mutate_participant_query_for_version(self, queryset, version):
+        """
+        Accepts a version string and a queryset on ParticipantManager.
+
+        Returns a 2-tuple of the following:
+            - a queryset, modified to filter by the appropriate version(s)
+            - a boolean value indicating if the version string was a complete version
+        """
+        complete_version = is_complete_version(version)
+
+        if version == 'LATEST':
+            version = get_latest_version()
+
+        if version and version != 'ALL':
+            if complete_version:
+                queryset = queryset.filter(match_detail__match_version=version)
+            else:
+                queryset = queryset.filter(match_detail__match_version__startswith=version)
+
+        return (queryset, complete_version)
+
     def total_picks(self, lane='ALL', role='ALL', version='ALL', region='NA'):
         """
         Returns the number of matches that this champion has participated in.
 
         Accepts parameters for lane, role, game version and region to consider.
-
-        Valid options for `lane` are 'TOP', 'MIDDLE', 'JUNGLE', 'BOTTOM' or 'ALL'
-        to consider all lanes.
-
-        Valid options for `role` are 'SOLO', 'NONE', 'DUO', 'DUO_CARRY', 'DUO_SUPPORT'
-        or 'ALL' to consider all roles.
+        See utils.constants for valid options for lane, role and region.
 
         Valid options for `version` are:
             -Complete version string, e.g. '5.21.0.413'.
@@ -58,37 +76,26 @@ class Champion(models.Model):
              be considered incomplete.
             -'ALL'. This will match all versions.
 
-        If `region` is omitted, it will default to 'NA'. See utils.constants.
+        If `region` is omitted, it will default to 'NA'.
 
         Note that the summing logic only applies to ranked matches, where only one team
         may have any given champion.
         """
-        participant_model = apps.get_model('matches', 'Participant')
-        match_detail_model = apps.get_model('matches', 'MatchDetail')
-        complete_version = False
+        Participant = apps.get_model('matches', 'Participant')
 
-        # FIXME: Hack - in prod we would want a better way of getting latest version.
-        if version == 'LATEST':
-            version = match_detail_model.objects.order_by('match_creation').last().match_version
-
-        queryset = participant_model.objects.select_related('match_detail') \
+        queryset = Participant.objects.select_related('match_detail') \
             .filter(match_detail__region=region) \
             .filter(champion_id=self.champion_id)
 
-        if lane and lane is not 'ALL':
+        if lane and lane != 'ALL':
             queryset = queryset.prefetch_related('participanttimeline_set') \
                 .filter(participanttimeline__lane=lane)
 
-        if role and role is not 'ALL':
+        if role and role != 'ALL':
             queryset = queryset.prefetch_related('participanttimeline_set') \
                 .filter(participanttimeline__role=role)
 
-        if version and version is not 'ALL':
-            if is_complete_version(version):
-                queryset = queryset.filter(match_detail__match_version=version)
-                complete_version = True
-            else:
-                queryset = queryset.filter(match_detail__match_version__startswith=version)
+        queryset, complete_version = self._mutate_participant_query_for_version(queryset, version)
 
         result = queryset.count()
 
@@ -103,53 +110,56 @@ class Champion(models.Model):
         """
         Returns the number of matches that this champion has participated in and won.
 
-        Accepts parameters for lane, role, game version and region to consider.
-
-        Valid options for `lane` are 'TOP', 'MIDDLE', 'JUNGLE', 'BOTTOM' or 'ALL'
-        to consider all lanes.
-
-        Valid options for `role` are 'SOLO', 'NONE', 'DUO', 'DUO_CARRY', 'DUO_SUPPORT'
-        or 'ALL' to consider all roles.
-
-        Valid options for `version` are:
-            -Complete version string, e.g. '5.21.0.413'.
-            -Incomplete version string, e.g. '5.21'. This will match the most significant
-             version numbers. Any string containing less than 4 groups of integers will
-             be considered incomplete.
-            -'ALL'. This will match all versions.
-
-        If `region` is omitted, it will default to 'NA'. See utils.constants.
-
-        Note that the summing logic only applies to ranked matches, where only one team
-        may have any given champion.
+        See total_picks method on this class for a description of parameters.
         """
-        participant_model = apps.get_model('matches', 'Participant')
-        match_detail_model = apps.get_model('matches', 'MatchDetail')
-        complete_version = False
+        Participant = apps.get_model('matches', 'Participant')
 
-        # FIXME: Hack - in prod we would want a better way of getting latest version.
-        if version == 'LATEST':
-            version = match_detail_model.objects.order_by('match_creation').last().match_version
-
-        queryset = participant_model.objects.select_related('match_detail') \
+        queryset = Participant.objects.select_related('match_detail') \
             .filter(match_detail__region=region) \
             .filter(champion_id=self.champion_id) \
             .filter(winner=True)
 
-        if lane and lane is not 'ALL':
+        if lane and lane != 'ALL':
             queryset = queryset.prefetch_related('participanttimeline_set') \
                 .filter(participanttimeline__lane=lane)
 
-        if role and role is not 'ALL':
+        if role and role != 'ALL':
             queryset = queryset.prefetch_related('participanttimeline_set') \
                 .filter(participanttimeline__role=role)
 
-        if version and version is not 'ALL':
-            if is_complete_version(version):
-                queryset = queryset.filter(match_detail__match_version=version)
-                complete_version = True
-            else:
-                queryset = queryset.filter(match_detail__match_version__startswith=version)
+        queryset, complete_version = self._mutate_participant_query_for_version(queryset, version)
+
+        result = queryset.count()
+
+        ChampionStats.objects.upsert(lane=lane, role=role, version=version,
+                                     is_exact_version=complete_version,
+                                     region=region, champion_id=self.champion_id,
+                                     update_fields={'sum_wins': result})
+
+        return result
+
+    def total_losses(self, lane='ALL', role='ALL', version='ALL', region='NA'):
+        """
+        Returns the number of matches that this champion has participated in and won.
+
+        See total_picks method on this class for a description of parameters.
+        """
+        Participant = apps.get_model('matches', 'Participant')
+
+        queryset = Participant.objects.select_related('match_detail') \
+            .filter(match_detail__region=region) \
+            .filter(champion_id=self.champion_id) \
+            .filter(winner=False)
+
+        if lane and lane != 'ALL':
+            queryset = queryset.prefetch_related('participanttimeline_set') \
+                .filter(participanttimeline__lane=lane)
+
+        if role and role != 'ALL':
+            queryset = queryset.prefetch_related('participanttimeline_set') \
+                .filter(participanttimeline__role=role)
+
+        queryset, complete_version = self._mutate_participant_query_for_version(queryset, version)
 
         result = queryset.count()
 
