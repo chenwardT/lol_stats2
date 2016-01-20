@@ -4,10 +4,10 @@ from django.core.urlresolvers import reverse
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 
 
-class HomeNewVisitorTest(StaticLiveServerTestCase):
+class RestFrameworkTest(StaticLiveServerTestCase):
 
     def setUp(self):
-        self.display = Display(visible=0, size=(1024,768))
+        self.display = Display(visible=0, size=(1024, 768))
         self.display.start()
         self.browser = webdriver.WebDriver()
         self.browser.implicitly_wait(3)
@@ -23,7 +23,7 @@ class HomeNewVisitorTest(StaticLiveServerTestCase):
         self.browser.get(self.get_full_url("api-root"))
         self.assertIn("Django REST framework", self.browser.title)
 
-    def test_h1_css(self):
+    def test_css(self):
         self.browser.get(self.get_full_url("api-root"))
         h1 = self.browser.find_element_by_tag_name("h1")
         self.assertEqual(h1.value_of_css_property("color"),

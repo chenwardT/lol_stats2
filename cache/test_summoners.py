@@ -6,7 +6,7 @@ from .summoners import SingleSummoner
 # FIXME: As it stands, this exceeds the rate limit and starts failing for reasons related.
 # Possible fixes:
 #   - emulate rate limiting
-#   - mock calls to Riot's API
+#   - mock Riot's API
 class SingleSummonerTestCase(TestCase):
     def setUp(self):
         self.known_summoner = Summoner.objects.create(summoner_id=1, name='Laughing Stapler',
@@ -16,7 +16,7 @@ class SingleSummonerTestCase(TestCase):
         self.region = 'NA'
 
     # Is this even necessary? If so, need to also delete everything that SingleSummoner
-    # queries create, like matches, leagues, etc.
+    # queries create, like matches, leagues, ISQs, etc.
     # def tearDown(self):
     #     Summoner.objects.all().delete()
 
