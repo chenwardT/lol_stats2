@@ -26,6 +26,13 @@ class Bucket(models.Model):
 class ChampionStatsManager(models.Manager):
     # TODO: Compare perf w/postgres 9.5 UPSERT (not used by Django yet)
     def upsert(self, lane, role, version, is_exact_version, region, champion_id, update_fields):
+        """
+        Accepts parameters specifying a Bucket, ChampionStats object, and a
+        dict of fields to update along with their respective values.
+        If the Bucket or ChampionStats objects don't exist, they are created.
+
+        Returns the updated ChampionStats object.
+        """
         with transaction.atomic():
             bucket = Bucket.objects.get_or_create(lane=lane,
                                                   role=role,
