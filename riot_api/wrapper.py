@@ -157,7 +157,8 @@ class RiotAPI:
     # matches and that occurred since the last fetch (what are the odds of this case?)
     # TODO: Consider removal of all ranked_queues options besides solo queue.
     @staticmethod
-    def get_match_list(summoner_id, region=None, champion_ids=None, ranked_queues='RANKED_SOLO_5x5',
+    def get_match_list(summoner_id, region=None, champion_ids=None,
+                       ranked_queues='TEAM_BUILDER_DRAFT_RANKED_5x5',
                        season=None, begin_time=None, end_time=None, begin_index=None,
                        end_index=None, max_matches=7):
         """
@@ -173,7 +174,10 @@ class RiotAPI:
         """
         logger.info('Getting matches for {} [{}]'.format(summoner_id, region))
 
-        _ALLOWED_QUEUES = ('RANKED_SOLO_5x5', 'RANKED_TEAM_5x5')
+        _ALLOWED_QUEUES = ('RANKED_SOLO_5x5', 'RANKED_TEAM_5x5', 'TEAM_BUILDER_DRAFT_RANKED_5x5')
+
+        if isinstance(ranked_queues, str):
+            ranked_queues = [ranked_queues]
 
         kwargs = {'method': 'get_match_list',
                   'summoner_id': summoner_id,
@@ -186,36 +190,38 @@ class RiotAPI:
                   'begin_index': begin_index,
                   'end_index': end_index}
 
-        if ranked_queues not in _ALLOWED_QUEUES:
-            error_msg = ('Unsupported value for "ranked_queues": {}; '
-                         'use RANKED_SOLO_5x5 or RANKED_TEAM_5x5'
-                         .format(ranked_queues))
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        else:
-            summoner_query = Summoner.objects.filter(region=region,
-                                                     summoner_id=summoner_id)
+        for queue in ranked_queues:
+            if queue not in _ALLOWED_QUEUES:
+                error_msg = ('Unsupported value for "ranked_queues": {}; '
+                             'valid options are any combination of: RANKED_SOLO_5x5,'
+                             'RANKED_TEAM_5x5, TEAM_BUILDER_DRAFT_RANKED_5x5'
+                             .format(ranked_queues))
+                logger.error(error_msg)
+                raise ValueError(error_msg)
 
-            # TODO: This may be misleading, as the time of the actual
-            # get_matches_from_ids or get_match calls don't necessarily
-            # occur immediately after this executes, e.g. when queues
-            # are backed up.
-            # Possible solution: pass summoner ID through to
-            # get_matches_from_ids and update last_matches_update field there.
-            if summoner_query.exists():
-                now = datetime.now(tz=pytz.utc)
-                summoner = summoner_query.get()
-                summoner.last_matches_update = now
-                summoner.save()
-                logger.info('Set {} last_matches_update to now: {}'.format(summoner, now))
+        summoner_query = Summoner.objects.filter(region=region,
+                                                 summoner_id=summoner_id)
 
-            get_ids_chain = chain(riot_api.s(kwargs),
-                                  RiotAPI.get_matches_from_ids.s(region=region,
-                                                                 max_matches=max_matches))
+        # TODO: This may be misleading, as the time of the actual
+        # get_matches_from_ids or get_match calls don't necessarily
+        # occur immediately after this executes, e.g. when queues
+        # are backed up.
+        # Possible solution: pass summoner ID through to
+        # get_matches_from_ids and update last_matches_update field there.
+        if summoner_query.exists():
+            now = datetime.now(tz=pytz.utc)
+            summoner = summoner_query.get()
+            summoner.last_matches_update = now
+            summoner.save()
+            logger.info('Set {} last_matches_update to now: {}'.format(summoner, now))
 
-            return group(chain(RiotAPI.get_match.s(match_id=match_id, region=region),
-                               riot_api.s(),
-                               store_match.s()) for match_id in get_ids_chain().get())()
+        get_ids_chain = chain(riot_api.s(kwargs),
+                              RiotAPI.get_matches_from_ids.s(region=region,
+                                                             max_matches=max_matches))
+
+        return group(chain(RiotAPI.get_match.s(match_id=match_id, region=region),
+                           riot_api.s(),
+                           store_match.s()) for match_id in get_ids_chain().get())()
 
     @app.task
     def get_match(match_id, region=None, include_timeline=False, execute=False):
