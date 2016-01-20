@@ -99,10 +99,8 @@ class Champion(models.Model):
 
         result = queryset.count()
 
-        ChampionStats.objects.upsert(lane=lane, role=role, version=version,
-                                     is_exact_version=complete_version,
-                                     region=region, champion_id=self.champion_id,
-                                     update_fields={'total_picks': result})
+        ChampionStats.objects.upsert(lane, role, version, complete_version, region,
+                                     self.champion_id, {'sum_picks': result})
 
         return result
 
@@ -166,7 +164,7 @@ class Champion(models.Model):
         ChampionStats.objects.upsert(lane=lane, role=role, version=version,
                                      is_exact_version=complete_version,
                                      region=region, champion_id=self.champion_id,
-                                     update_fields={'total_wins': result})
+                                     update_fields={'sum_losses': result})
 
         return result
 
