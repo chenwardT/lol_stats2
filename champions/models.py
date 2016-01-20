@@ -2,11 +2,13 @@ import logging
 
 from django.db import models
 from django.apps import apps
+from django.db.models import Sum, Avg
 
 from stats.models import ChampionStats
 from utils.functions import is_complete_version, get_latest_version
 
 logger = logging.getLogger(__name__)
+
 
 class ChampionManager(models.Manager):
     # TODO: Replaceable by Champion.objects.create()
@@ -35,6 +37,20 @@ class Champion(models.Model):
     key = models.CharField(max_length=32)
 
     objects = ChampionManager()
+
+    # TODO: This is currently a subset of all fields that make sense to sum (for later averaging).
+    # It should be expanded once dynamic summing is known to work correctly.
+    # See dynamic_participant_field_sum.
+    #
+    # Compare with stats like total_picks, where result is based on summing a count
+    # of matches.
+    summable_participant_fields = [
+        'assists',
+        'deaths',
+        'gold_earned',
+        'kills',
+        'minions_killed'
+    ]
 
     def __str__(self):
         return self.name
@@ -190,6 +206,55 @@ class Champion(models.Model):
                                      is_exact_version=complete_version,
                                      region=region, champion_id=self.champion_id,
                                      update_fields={'sum_losses': result})
+
+        return result
+
+    def participant_field_agg(self, field, op, lane='ALL', role='ALL', version='ALL', region='NA'):
+        """
+        Dynamically aggregates the values of a given field across Participant records
+        matching the provided filters using the operation specified.
+
+        The result is stored in a matching ChampionStats Bucket and returned.
+
+        Valid values for `op`:
+            - 'sum'
+            - 'avg'
+
+        See Champion.summable_participant_fields.
+        """
+        if op not in ('sum', 'avg'):
+            raise ValueError('Invalid aggregate op; choices are: sum, avg.')
+
+        Participant = apps.get_model('matches', 'Participant')
+
+        queryset = Participant.objects.select_related('match_detail') \
+            .filter(match_detail__region=region) \
+            .filter(champion_id=self.champion_id)
+
+        if lane and lane != 'ALL':
+            queryset = queryset.prefetch_related('participanttimeline_set') \
+                .filter(participanttimeline__lane=lane)
+
+        if role and role != 'ALL':
+            queryset = queryset.prefetch_related('participanttimeline_set') \
+                .filter(participanttimeline__role=role)
+
+        queryset, complete_version = self._mutate_participant_query_for_version(queryset, version)
+
+        if op == 'sum':
+            result = queryset.aggregate(Sum(field))['{}__sum'.format(field)]
+
+            ChampionStats.objects.upsert(lane=lane, role=role, version=version,
+                                         is_exact_version=complete_version,
+                                         region=region, champion_id=self.champion_id,
+                                         update_fields={'sum_{}'.format(field): result})
+        elif op == 'avg':
+            result = queryset.aggregate(Avg(field))['{}__avg'.format(field)]
+
+            ChampionStats.objects.upsert(lane=lane, role=role, version=version,
+                                         is_exact_version=complete_version,
+                                         region=region, champion_id=self.champion_id,
+                                         update_fields={'avg_{}'.format(field): result})
 
         return result
 
