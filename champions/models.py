@@ -55,7 +55,7 @@ class Champion(models.Model):
         'total_heal',
         'minions_killed',
         'neutral_minions_killed_enemy_jungle',
-        'neutral_minions_killed_friendly_jungle',
+        'neutral_minions_killed_team_jungle',
     ]
 
     def __str__(self):
