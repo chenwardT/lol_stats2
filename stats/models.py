@@ -21,7 +21,7 @@ class Bucket(models.Model):
         unique_together = ('version', 'region', 'lane', 'role')
 
     def __str__(self):
-        return '{} {} {} {}'.format(self.region, self.version, self.lane, self.role)
+        return '[{}] V:{} L:{} R:{}'.format(self.region, self.version, self.lane, self.role)
 
 class ChampionStatsManager(models.Manager):
     # TODO: Compare perf w/postgres 9.5 UPSERT (not used by Django yet)
@@ -37,46 +37,47 @@ class ChampionStatsManager(models.Manager):
             return champ_stats_obj[0]
 
 class ChampionStats(models.Model):
+    # "rate" fields are intended to be expressed as a percentage.
     bucket = models.ForeignKey(Bucket)
     champion_id = models.IntegerField()
     last_update = models.DateTimeField(auto_now=True)
     
-    total_picks = models.BigIntegerField(blank=True, null=True)
-    total_bans = models.BigIntegerField(blank=True, null=True)
-    total_wins = models.BigIntegerField(blank=True, null=True)
-    win_rate = models.IntegerField(blank=True, null=True)
+    sum_picks = models.BigIntegerField(blank=True, null=True)
+    sum_bans = models.BigIntegerField(blank=True, null=True)
+    sum_wins = models.BigIntegerField(blank=True, null=True)
+    win_rate = models.FloatField(blank=True, null=True)
     # Useful for checking integrity?
-    total_losses = models.BigIntegerField(blank=True, null=True)
-    pick_rate = models.IntegerField(blank=True, null=True)
+    sum_losses = models.BigIntegerField(blank=True, null=True)
+    pick_rate = models.FloatField(blank=True, null=True)
     # Averaged count of times picked by all players.
-    avg_pick_count = models.IntegerField(blank=True, null=True)
-    total_kills = models.BigIntegerField(blank=True, null=True)
-    avg_kills = models.IntegerField(blank=True, null=True)
-    total_deaths = models.BigIntegerField(blank=True, null=True)
-    avg_death = models.IntegerField(blank=True, null=True)
-    total_assists = models.BigIntegerField(blank=True, null=True)
-    avg_assists = models.IntegerField(blank=True, null=True)
-    total_killing_sprees = models.BigIntegerField(blank=True, null=True)
-    avg_largest_killing_spree = models.IntegerField(blank=True, null=True)
-    total_damage_dealt = models.BigIntegerField(blank=True, null=True)
-    avg_damage_dealt = models.IntegerField(blank=True, null=True)
-    total_damage_taken = models.BigIntegerField(blank=True, null=True)
-    avg_damage_taken = models.IntegerField(blank=True, null=True)
+    avg_pick_count = models.FloatField(blank=True, null=True)
+    sum_kills = models.BigIntegerField(blank=True, null=True)
+    avg_kills = models.FloatField(blank=True, null=True)
+    sum_deaths = models.BigIntegerField(blank=True, null=True)
+    avg_death = models.FloatField(blank=True, null=True)
+    sum_assists = models.BigIntegerField(blank=True, null=True)
+    avg_assists = models.FloatField(blank=True, null=True)
+    sum_largest_killing_spree = models.BigIntegerField(blank=True, null=True)
+    avg_largest_killing_spree = models.FloatField(blank=True, null=True)
+    sum_damage_dealt = models.BigIntegerField(blank=True, null=True)
+    avg_damage_dealt = models.FloatField(blank=True, null=True)
+    sum_damage_taken = models.BigIntegerField(blank=True, null=True)
+    avg_damage_taken = models.FloatField(blank=True, null=True)
     # Double-check these for self vs all healing
-    total_self_healing = models.BigIntegerField(blank=True, null=True)
-    avg_self_healing = models.IntegerField(blank=True, null=True)
-    total_minions_killed = models.BigIntegerField(blank=True, null=True)
-    avg_minions_killed = models.IntegerField(blank=True, null=True)
+    sum_self_healing = models.BigIntegerField(blank=True, null=True)
+    avg_self_healing = models.FloatField(blank=True, null=True)
+    sum_minions_killed = models.BigIntegerField(blank=True, null=True)
+    avg_minions_killed = models.FloatField(blank=True, null=True)
     # CS obtained from enemy jungle
-    total_enemy_jungle_cs = models.BigIntegerField(blank=True, null=True)
-    avg_enemy_jungle_cs = models.IntegerField(blank=True, null=True)
+    sum_enemy_jungle_cs = models.BigIntegerField(blank=True, null=True)
+    avg_enemy_jungle_cs = models.FloatField(blank=True, null=True)
     # CS obtained from friendly jungle
-    total_team_jungle_cs = models.BigIntegerField(blank=True, null=True)
-    avg_team_jungle_cs = models.IntegerField(blank=True, null=True)
-    total_gold_earned = models.BigIntegerField(blank=True, null=True)
-    avg_gold_earned = models.IntegerField(blank=True, null=True)
+    sum_team_jungle_cs = models.BigIntegerField(blank=True, null=True)
+    avg_team_jungle_cs = models.FloatField(blank=True, null=True)
+    sum_gold_earned = models.BigIntegerField(blank=True, null=True)
+    avg_gold_earned = models.FloatField(blank=True, null=True)
     # TODO: Develop metrics based on weighting of different stats per role
-    #       Strongly dependent on win rate.
+    # Strongly dependent on win rate.
     role_position = models.IntegerField(blank=True, null=True)
     position_delta = models.IntegerField(blank=True, null=True)
 
@@ -87,8 +88,8 @@ class ChampionStats(models.Model):
 
     def __str__(self):
         champion_model = apps.get_model('champions', 'Champion')
-        return '{} {} {} {} {}'.format(self.bucket.region,
-                                       self.bucket.version,
-                                       champion_model.objects.get(champion_id=self.champion_id),
-                                       self.bucket.lane,
-                                       self.bucket.role)
+        return '[{}] {} V:{}  L:{} R:{}'.format(self.bucket.region,
+                                                champion_model.objects.get(champion_id=self.champion_id),
+                                                self.bucket.version,
+                                                self.bucket.lane,
+                                                self.bucket.role)
