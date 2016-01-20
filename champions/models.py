@@ -245,18 +245,15 @@ class Champion(models.Model):
         queryset, complete_version = self._mutate_participant_query_for_version(queryset, version)
 
         if op == 'sum':
-            result = queryset.aggregate(Sum(field))['{}__sum'.format(field)]
-
-            ChampionStats.objects.upsert(lane=lane, role=role, version=version,
-                                         is_exact_version=complete_version,
-                                         region=region, champion_id=self.champion_id,
-                                         update_fields={'sum_{}'.format(field): result})
+            aggregator = Sum
         elif op == 'avg':
-            result = queryset.aggregate(Avg(field))['{}__avg'.format(field)]
+            aggregator = Avg
 
-            ChampionStats.objects.upsert(lane=lane, role=role, version=version,
-                                         is_exact_version=complete_version,
-                                         region=region, champion_id=self.champion_id,
-                                         update_fields={'avg_{}'.format(field): result})
+        result = queryset.aggregate(aggregator(field))['{}__{}'.format(field, op.lower())]
+
+        ChampionStats.objects.upsert(lane=lane, role=role, version=version,
+                                     is_exact_version=complete_version,
+                                     region=region, champion_id=self.champion_id,
+                                     update_fields={'{}_{}'.format(op.lower(), field): result})
 
         return result
