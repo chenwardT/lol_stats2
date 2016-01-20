@@ -1,6 +1,7 @@
 import logging
 
 import inflection
+from django.apps import apps
 
 from celery.result import AsyncResult, GroupResult
 
@@ -93,4 +94,9 @@ def is_complete_version(version_str):
     Returns True if a string contains a complete version, like '5.21.0.313'
     otherwise False, like when the string is an incomplete version, e.g. '5.21'.
     """
-    return True if len(version_str.split('.')) == 4 else False
+    return len(version_str.split('.')) == 4
+
+# FIXME: Hack - in prod we would want a better way of getting latest version.
+def get_latest_version():
+    MatchDetail = apps.get_model('matches', 'MatchDetail')
+    return MatchDetail.objects.order_by('match_creation').last().match_version
