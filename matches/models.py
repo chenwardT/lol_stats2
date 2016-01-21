@@ -11,6 +11,7 @@ to by more than one kind of other model (e.g. Position).
 
 import logging
 from datetime import datetime
+from statistics import mean
 
 from django.db import models, transaction
 from django.contrib.postgres import fields
@@ -18,6 +19,7 @@ from django.contrib.postgres import fields
 from utils.mixins import (IterableDataFieldsMixin,
                           CreateableFromAttrsMixin,
                           ParticipantFromAttrsMixin)
+from utils.constants import TIER_ENUM
 from champions.models import Champion
 from summoners.models import Summoner
 
@@ -28,6 +30,13 @@ logger = logging.getLogger(__name__)
 
 
 class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
+    @staticmethod
+    def _get_avg_tier(match_dict):
+        participants = match_dict['participants']
+        tiers = [participant['highestAchievedSeasonTier'] for participant in participants]
+
+        return mean(map(TIER_ENUM.get, tiers))
+
     def create_match(self, attrs):
         match = None
 
@@ -35,6 +44,7 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
             if not self.filter(match_id=attrs['matchId'],
                                region=attrs['region']).exists():
 
+                attrs.update({'avg_highest_achieved_season_tier': MatchDetailManager._get_avg_tier(attrs)})
                 match = self.create(**self.init_dict(attrs))
 
         if match:
@@ -46,7 +56,7 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
             match.participantidentity_set.bulk_create_participant_identities(attrs['participantIdentities'])
             match.team_set.bulk_create_teams(attrs['teams'])
 
-        logging.info('Created match: [{}] {}'.format(attrs['region'], attrs['matchId']))
+        logger.info('Created match: [{}] {}'.format(attrs['region'], attrs['matchId']))
         return match
 
 
@@ -62,6 +72,7 @@ class MatchDetail(IterableDataFieldsMixin, models.Model):
     queue_type = models.CharField(max_length=32)        # ex. RANKED_SOLO_5x5
     region = models.CharField(max_length=4, db_index=True)  # ex. NA
     season = models.CharField(max_length=24)            # ex. PRESEASON2015
+    avg_highest_achieved_season_tier = models.FloatField(null=True, blank=True)
 
     objects = MatchDetailManager()
 
