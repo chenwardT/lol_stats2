@@ -43,3 +43,13 @@ TIER_ENUM = {
     'MASTER':       6,
     'CHALLENGER':   7,
 }
+
+TIER_ORDER = [
+    'BRONZE',
+    'SILVER',
+    'GOLD',
+    'PLATINUM',
+    'DIAMOND',
+    'MASTER',
+    'CHALLENGER'
+]
