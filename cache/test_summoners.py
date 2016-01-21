@@ -15,11 +15,6 @@ class SingleSummonerTestCase(TestCase):
         self.summoner_name = 'Laughing Stapler'
         self.region = 'NA'
 
-    # Is this even necessary? If so, need to also delete everything that SingleSummoner
-    # queries create, like matches, leagues, ISQs, etc.
-    # def tearDown(self):
-    #     Summoner.objects.all().delete()
-
     def test_init_by_name(self):
         ss = SingleSummoner(name='Laughing Stapler', region='NA')
         self.assertEqual(ss.std_name, 'laughingstapler')
