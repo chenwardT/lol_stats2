@@ -4,7 +4,7 @@ Celery config and task definitions.
 To start worker, from lol_stats2 dir:
 celery -A lol_stats2 worker -l info
 
-Alternatively, use workers.sh.
+Alternatively, use restart_workers.sh.
 """
 
 import os
@@ -55,7 +55,6 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 riot_watcher = RiotWatcher(RIOT_API_KEY)
 
-
 # TODO: Move tasks into separate modules.
 # TODO: Create separate task for static API calls (not counted against rate limit).
 
@@ -89,6 +88,8 @@ def riot_api(self, kwargs):
     non_method_kwargs = kwargs.copy()
     non_method_kwargs.pop('method')
 
+    # TODO: Cleanup: pass e and self to error handler class/dispatch by mapping
+    # errors to dict
     try:
         result = func(**non_method_kwargs)
     except LoLException as e:
@@ -162,13 +163,13 @@ def store_summoners(result, region):
 
     if result:
         for entry in result:
-            logger.debug('using entry: {}: {}'.format(entry, result[entry]))
+            logger.debug('using entry: %s: %s', entry, result[entry])
             potentially_extant_summoner = Summoner.objects.filter(
                 summoner_id=result[entry]['id'], region=region)
 
             if potentially_extant_summoner.exists():
                 summoner = potentially_extant_summoner.get()
-                logger.debug('potentially_extant_summoner: {}'.format(summoner.__dict__))
+                logger.debug('potentially_extant_summoner: %s', summoner.__dict__)
                 summoner.update(region, result[entry])
                 storage_result['updated'] += 1
             else:
@@ -185,7 +186,7 @@ def store_summoners(result, region):
 
     return storage_result
 
-
+# TODO: Refactor to work like store_summoner_spell_list.
 @app.task(ignore_result=True)
 def store_champion_list(result):
     """
@@ -208,10 +209,9 @@ def store_champion_list(result):
             if not Champion.objects.filter(champion_id=attrs['id']).exists():
                 created.append(Champion.objects.create_champion(attrs))
 
-    logger.info('Stored {} champions'.format(len(result['data'])))
+    logger.info('Stored %s champions', len(created))
 
     return created
-
 
 @app.task(ignore_result=True)
 def store_summoner_spell_list(result):
@@ -232,7 +232,9 @@ def store_summoner_spell_list(result):
         SummonerSpell.objects.all().delete()
         SummonerSpell.objects.bulk_create(spell_objs)
 
-    logger.info('Stored {} summoner spells'.format(len(result['data'])))
+    logger.info('Stored %s summoner spells', len(result['data']))
+
+    return result
 
 
 @app.task(ignore_result=True)
@@ -244,7 +246,7 @@ def store_challenger(result, region):
     """
     League.objects.create_or_update_league(result, region)
 
-    logger.info('Stored challenger league for {}'.format(region))
+    logger.info('Stored challenger league for %s', region)
 
 
 @app.task(routing_key='store.get_league')
@@ -262,15 +264,15 @@ def store_league(result, region):
         # Empty dict means that the queried summoner is not in a league.
         if result != {}:
             for summoner_id in result:
-                logger.debug('Reading leagues for summoner ID {}'.format(summoner_id))
+                logger.debug('Reading leagues for summoner ID %s', summoner_id)
 
                 for league in result[summoner_id]:
                     League.objects.create_or_update_league(league, region)
 
                 # TODO: This is misleading since we can block updates in update_league
                 # based on last_update.
-                logger.info('Stored {} leagues for [{}] {}'.format(len(result[summoner_id]),
-                                                                   region, summoner_id))
+                logger.info('Stored %s leagues for [%s] %s', len(result[summoner_id]),
+                                                             region, summoner_id)
             return True
         else:
             return False
@@ -289,7 +291,7 @@ def store_match(result):
     """
     if result != {}:
         created = MatchDetail.objects.create_match(result)
-        logger.info('Stored match {} (create time: {})'.format(created, created.match_date()))
+        logger.info('Stored match %s (create time: %s)', created, created.match_date())
         return True
     else:
         return False
