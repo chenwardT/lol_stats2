@@ -13,6 +13,7 @@ from lol_stats2.celery import (app,
                                store_match,
                                store_summoners,
                                store_league,
+                               store_champion_list,
                                store_summoner_spell_list)
 from matches.models import MatchDetail
 from summoners.models import Summoner
@@ -54,7 +55,7 @@ class RiotAPI:
                   'data_by_id': data_by_id,
                   'champ_data': champ_data}
 
-        return kwargs
+        return chain(riot_api.s(kwargs), store_champion_list.s())()
 
     @staticmethod
     def static_get_summoner_spell_list(region=None, locale=None, version=None,
