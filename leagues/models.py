@@ -4,9 +4,11 @@ from datetime import datetime, timedelta
 import pytz
 from django.db import models
 from django.db import transaction
+from django.db.models import Q
 
 from summoners.models import Summoner
 from utils.functions import underscore_dict
+from utils.constants import TIER_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +113,40 @@ class LeagueEntryManager(models.Manager):
         self.bulk_create(entry_objs)
 
         logger.debug('Bulk created {} league entries'.format(len(flattened_entries)))
+
+    def get_summoner_ids_by_min_tier(self, region, tier):
+        bronze = Q(league__tier='BRONZE')
+        silver = Q(league__tier='SILVER')
+        gold = Q(league__tier='GOLD')
+        platinum = Q(league__tier='PLATINUM')
+        diamond = Q(league__tier='DIAMOND')
+        master = Q(league__tier='MASTER')
+        challenger = Q(league__tier='CHALLENGER')
+
+        filters = {
+            'BRONZE': bronze,
+            'SILVER': silver,
+            'GOLD': gold,
+            'PLATINUM': platinum,
+            'DIAMOND': diamond,
+            'MASTER': master,
+            'CHALLENGER': challenger,
+        }
+
+        lowest_tier_to_consider = TIER_ORDER.index(tier.upper())
+        filters_to_use = [filters[t] for t in TIER_ORDER[lowest_tier_to_consider:]]
+
+        complete_tier_filter = Q()
+
+        for f in filters_to_use:
+            complete_tier_filter |= f
+
+        return self.filter(league__region=region) \
+                   .exclude(league__queue='RANKED_TEAM_5x5') \
+                   .exclude(player_or_team_id__contains='TEAM') \
+                   .filter(complete_tier_filter) \
+                   .values_list('player_or_team_id', flat=True) \
+                   .distinct()
 
 
 class LeagueEntry(models.Model):
