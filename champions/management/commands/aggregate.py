@@ -13,10 +13,10 @@ class Command(BaseCommand):
                             nargs='?',
                             default='NA',
                             help='The region to consider')
-        parser.add_argument('--matchversion',
+        parser.add_argument('--patch',
                             nargs='?',
                             default='ALL',
-                            help='The match version to consider')
+                            help='The patch number to consider')
 
     def handle(self, *args, **options):
         if options['op'] not in ('sum', 'avg'):
@@ -31,14 +31,13 @@ class Command(BaseCommand):
                                                         bucket__role=combo['role'],
                                                         champion_id=champion.champion_id)
                 if queryset.exists() and queryset.get().sum_picks > 300:
-                    # for field in Champion.aggregable_participant_fields:
-                    field = 'gold_earned'
-                    champion.participant_field_agg(field,
-                                                   options['op'],
-                                                   combo['lane'],
-                                                   combo['role'],
-                                                   options['matchversion'],
-                                                   options['region'])
+                    for field in Champion.aggregable_participant_fields:
+                        champion.participant_field_agg(field,
+                                                       options['op'],
+                                                       combo['lane'],
+                                                       combo['role'],
+                                                       options['patch'],
+                                                       options['region'])
 
         rows = Champion.objects.count() * \
                len(VALID_LANE_ROLE_COMBOS) * \
