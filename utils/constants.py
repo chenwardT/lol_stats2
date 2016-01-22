@@ -3,19 +3,19 @@ VALID_LANE_ROLE_COMBOS = [
     {'lane': 'TOP',    'role': 'DUO_CARRY'},
     {'lane': 'TOP',    'role': 'DUO_SUPPORT'},
     {'lane': 'TOP',    'role': 'NONE'},
-    {'lane': 'TOP',    'role': 'SOLO'},
+    {'lane': 'TOP',    'role': 'SOLO',          'alias': 'Top'},
 
-    {'lane': 'JUNGLE', 'role': 'NONE'},
+    {'lane': 'JUNGLE', 'role': 'NONE',          'alias': 'Jungle'},
 
     {'lane': 'MIDDLE', 'role': 'DUO'},
     {'lane': 'MIDDLE', 'role': 'DUO_CARRY'},
     {'lane': 'MIDDLE', 'role': 'DUO_SUPPORT'},
     {'lane': 'MIDDLE', 'role': 'NONE'},
-    {'lane': 'MIDDLE', 'role': 'SOLO'},
+    {'lane': 'MIDDLE', 'role': 'SOLO',          'alias': 'Mid'},
 
     {'lane': 'BOTTOM', 'role': 'DUO'},
-    {'lane': 'BOTTOM', 'role': 'DUO_CARRY'},
-    {'lane': 'BOTTOM', 'role': 'DUO_SUPPORT'},
+    {'lane': 'BOTTOM', 'role': 'DUO_CARRY',     'alias': 'ADC'},
+    {'lane': 'BOTTOM', 'role': 'DUO_SUPPORT',   'alias': 'Support'},
     {'lane': 'BOTTOM', 'role': 'NONE'},
     {'lane': 'BOTTOM', 'role': 'SOLO'},
 ]
