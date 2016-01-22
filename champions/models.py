@@ -292,18 +292,37 @@ class Champion(models.Model):
         return picked_in / total_matches > pct
 
     # TODO: Could be rewritten using partial from functools, or a closure.
-    def get_significant_positions(self, version, pct=.10):
+    def get_significant_positions(self, version, force_update=False, pct=.10):
         """
         Returns a list of positions that this champion is commonly played in.
 
         See Champion.is_significant_position.
         """
-        positions = []
-        for combo in VALID_LANE_ROLE_COMBOS:
-            if self.is_significant_position(combo['lane'], combo['role'], version, pct):
-                positions.append((combo['lane'], combo['role']))
 
-        return positions
+        if not force_update:
+            return SignificantPosition.objects.filter(champion=self, version=version, pct=pct)
+        else:
+            positions = []
+            sigpos_objs = []
+
+            for combo in VALID_LANE_ROLE_COMBOS:
+                if self.is_significant_position(combo['lane'], combo['role'], version, pct):
+                    positions.append((combo['lane'], combo['role']))
+                    creation_dict = {
+                        'champion_id': self.champion_id,
+                        'version': version,
+                        'lane': combo['lane'],
+                        'role': combo['role'],
+                        'pct': pct,
+                    }
+                    sigpos_objs.append(SignificantPosition(**creation_dict))
+
+            # Delete all SigPos objects for this version and pct and repopulate
+            # the version-pct scope with the newly calculated results.
+            SignificantPosition.objects.filter(version=version, pct=pct, champion=self).delete()
+            results = SignificantPosition.objects.bulk_create(sigpos_objs)
+
+            return results
 
 class SignificantPosition(models.Model):
     """
