@@ -59,6 +59,9 @@ class MatchDetailManager(CreateableFromAttrsMixin, models.Manager):
         logger.info('Created match: [{}] {}'.format(attrs['region'], attrs['matchId']))
         return match
 
+    def by_version(self, version):
+        return self.filter(match_version__startswith=version)
+
 
 class MatchDetail(IterableDataFieldsMixin, models.Model):
     map_id = models.IntegerField()                      # ex. 11
