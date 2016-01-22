@@ -6,6 +6,7 @@ from django.db.models import Sum, Avg
 
 from stats.models import ChampionStats
 from utils.functions import is_complete_version, get_latest_version
+from utils.constants import VALID_LANE_ROLE_COMBOS
 
 logger = logging.getLogger(__name__)
 
@@ -231,6 +232,9 @@ class Champion(models.Model):
 
         See Champion.summable_participant_fields.
         """
+        logger.info('Calculating "{}" using "{}" for lane={} region={} version={} region={}'.format(
+            field, op, lane, role, version, region))
+
         if op not in ('sum', 'avg'):
             raise ValueError('Invalid aggregate op; choices are: sum, avg.')
 
@@ -263,3 +267,40 @@ class Champion(models.Model):
                                      update_fields={'{}_{}'.format(op.lower(), field): result})
 
         return result
+
+    def is_significant_position(self, lane, role, version, pct=.10):
+        """
+        Returns True if the number of matches that this champion has been played
+        in the given lane and role exceeds an optionally specified percentage
+        (default: .10).
+
+        Also requires a version.
+
+        Intended to be used as a gate for further calculations of expensive
+        statistics.
+        """
+        Participant = apps.get_model('matches', 'Participant')
+        MatchDetail = apps.get_model('matches', 'MatchDetail')
+        total_matches = MatchDetail.objects.by_version(version) \
+                                           .filter(participant__champion_id=self.champion_id) \
+                                           .count()
+        picked_in = Participant.objects.filter(match_detail__match_version__startswith=version,
+                                               champion_id=self.champion_id,
+                                               participanttimeline__lane=lane,
+                                               participanttimeline__role=role).count()
+
+        return picked_in / total_matches > pct
+
+    # TODO: Could be rewritten using partial from functools, or a closure.
+    def get_significant_positions(self, version, pct=.10):
+        """
+        Returns a list of positions that this champion is commonly played in.
+
+        See Champion.is_significant_position.
+        """
+        positions = []
+        for combo in VALID_LANE_ROLE_COMBOS:
+            if self.is_significant_position(combo['lane'], combo['role'], version, pct):
+                positions.append((combo['lane'], combo['role']))
+
+        return positions
