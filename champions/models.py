@@ -304,3 +304,20 @@ class Champion(models.Model):
                 positions.append((combo['lane'], combo['role']))
 
         return positions
+
+class SignificantPosition(models.Model):
+    """
+    Contains positive results for Champion.get_significant_positions.
+    """
+    champion = models.ForeignKey(Champion)
+    version = models.CharField(max_length=16)
+    lane = models.CharField(max_length=16)
+    role = models.CharField(max_length=16)
+    pct = models.FloatField()
+    last_update = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return '{:12s} (v{}) {:6s} {:11s}'.format(self.champion.name,
+                                                  self.version,
+                                                  self.lane,
+                                                  self.role)
