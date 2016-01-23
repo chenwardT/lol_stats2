@@ -180,6 +180,9 @@ class RiotAPI:
         if isinstance(ranked_queues, str):
             ranked_queues = [ranked_queues]
 
+        if isinstance(season, str):
+            season = [season]
+
         kwargs = {'method': 'get_match_list',
                   'summoner_id': summoner_id,
                   'region': region,
