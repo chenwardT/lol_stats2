@@ -233,8 +233,8 @@ class Champion(models.Model):
 
         See Champion.summable_participant_fields.
         """
-        logger.info('Calculating "{}" using "{}" for lane={} region={} version={} region={}'.format(
-            field, op, lane, role, version, region))
+        logger.debug('Calculating "{}" using "{}" for {} lane={} region={} version={} region={}'.format(
+            field, op, self.name, lane, role, version, region))
 
         if op not in ('sum', 'avg'):
             raise ValueError('Invalid aggregate op; choices are: sum, avg.')
@@ -242,8 +242,9 @@ class Champion(models.Model):
         Participant = apps.get_model('matches', 'Participant')
 
         queryset = Participant.objects.select_related('match_detail') \
-            .filter(match_detail__region=region) \
-            .filter(champion_id=self.champion_id)
+            .filter(champion_id=self.champion_id) \
+            # .filter(match_detail__region=region)
+
 
         if lane and lane != 'ALL':
             queryset = queryset.prefetch_related('participanttimeline_set') \
@@ -261,6 +262,8 @@ class Champion(models.Model):
             aggregator = Avg
 
         result = queryset.aggregate(aggregator(field))['{}__{}'.format(field, op.lower())]
+
+        logger.debug('Result for {} {}_{}: {}'.format(self.name, field, op, result))
 
         ChampionStats.objects.upsert(lane=lane, role=role, version=version,
                                      is_exact_version=complete_version,
