@@ -2,7 +2,7 @@ import logging
 
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from rest_framework import viewsets
 from rest_framework.pagination import PageNumberPagination
 
@@ -77,3 +77,15 @@ def refresh(request):
         task_ids = ss.full_query()
 
         return JsonResponse({'task_ids': task_ids})
+
+
+def is_summoner_refreshable(request):
+    if request.method == 'POST':
+        logger.debug(request.POST)
+        name = request.POST['name']
+        region = request.POST['region']
+        ss = SingleSummoner(name=name, region=region)
+
+        return JsonResponse({'refreshable': ss.is_refreshable()})
+    else:
+        return HttpResponseBadRequest
