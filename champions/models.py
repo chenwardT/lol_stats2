@@ -85,7 +85,7 @@ class Champion(models.Model):
 
         return (queryset, complete_version)
 
-    def total_picks(self, lane='ALL', role='ALL', version='ALL', region='NA'):
+    def total_picks(self, lane='ALL', role='ALL', version='ALL', region='ALL'):
         """
         Returns the number of matches that this champion has participated in.
 
@@ -99,7 +99,7 @@ class Champion(models.Model):
              See utils.functions.is_complete_version.
             -'ALL'. This will match all versions.
 
-        If `region` is omitted, it will default to 'NA'.
+        If `region` is omitted, it will default to 'ALL'.
 
         Note that the summing logic only applies to ranked matches, where only
         one team may have any given champion.
@@ -127,7 +127,7 @@ class Champion(models.Model):
 
         return result
 
-    def total_bans(self, version='ALL', region='NA'):
+    def total_bans(self, version='ALL', region='ALL'):
         """
         Returns and stores the number of matches that this champion was
         banned in.
@@ -153,7 +153,7 @@ class Champion(models.Model):
         ChampionStats.objects.upsert('ANY', 'ANY', version, complete_version, region,
                                      self.champion_id, {'sum_bans': result})
 
-    def total_wins(self, lane='ALL', role='ALL', version='ALL', region='NA'):
+    def total_wins(self, lane='ALL', role='ALL', version='ALL', region='ALL'):
         """
         Returns and stores the number of matches that this champion has
         participated in and won.
@@ -186,7 +186,7 @@ class Champion(models.Model):
 
         return result
 
-    def total_losses(self, lane='ALL', role='ALL', version='ALL', region='NA'):
+    def total_losses(self, lane='ALL', role='ALL', version='ALL', region='ALL'):
         """
         Returns and stores the number of matches that this champion has
         participated in and won.
@@ -219,7 +219,8 @@ class Champion(models.Model):
 
         return result
 
-    def participant_field_agg(self, field, op, lane='ALL', role='ALL', version='ALL', region='NA'):
+    # TODO: Make necessary changes to this and what follows now that `region` isn't used in filter!
+    def participant_field_agg(self, field, op, lane='ALL', role='ALL', version='ALL', region='ALL'):
         """
         Dynamically aggregates the values of a given field across Participant records
         matching the provided filters using the operation specified.
