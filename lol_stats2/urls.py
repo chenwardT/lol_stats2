@@ -7,6 +7,7 @@ from champions.views import ChampionViewSet
 from matches.views import MatchDetailViewSet, MatchListForSummoner
 from leagues.views import LeagueViewSet, LeagueEntryForSummoner
 from cache.views import task_status, is_summoner_refreshable
+from stats.views import ChampionStatsByVersion
 
 router = routers.DefaultRouter()
 router.register(r'summoners', SummonerViewSet)
@@ -22,6 +23,7 @@ urlpatterns = patterns('',
 
     url(r'^summoner-matches/(?P<summoner_pk>\d+)', MatchListForSummoner.as_view()),
     url(r'^summoner-league/(?P<summoner_pk>\d+)', LeagueEntryForSummoner.as_view()),
+    url(r'^champion-stats/(?P<patch>[\w.]+)', ChampionStatsByVersion.as_view()),
 
     url(r'^home/', index),
     url(r'^show/(?P<region>\w+)/(?P<name>[\w ]+)', show, name='show'),
