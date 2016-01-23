@@ -1,5 +1,9 @@
+import logging
+
 from django.db import models, transaction
 from django.apps import apps
+
+logger = logging.getLogger(__name__)
 
 # TODO: Manage least-significant version field, i.e. ability to merge 5.2.0.22, 5.2.0.46, etc
 class Bucket(models.Model):
@@ -25,7 +29,7 @@ class Bucket(models.Model):
 
 class ChampionStatsManager(models.Manager):
     # TODO: Compare perf w/postgres 9.5 UPSERT (not used by Django yet)
-    def upsert(self, lane, role, version, is_exact_version, region, champion_id, update_fields):
+    def upsert(self, lane, role, version, is_exact_version, region, champion, update_fields):
         """
         Accepts parameters specifying a Bucket, ChampionStats object, and a
         dict of fields to update along with their respective values.
@@ -39,14 +43,16 @@ class ChampionStatsManager(models.Manager):
                                                   version=version,
                                                   is_exact_version=is_exact_version,
                                                   region=region)[0]
-            champ_stats_obj = bucket.championstats_set.update_or_create(champion_id=champion_id,
+            champ_stats_obj = bucket.championstats_set.update_or_create(champion=champion,
                                                                         defaults=update_fields)
+
+            logger.debug('%s - SETTING: %s', champ_stats_obj, update_fields)
             return champ_stats_obj[0]
 
 class ChampionStats(models.Model):
     # "rate" fields are intended to be expressed as a percentage.
     bucket = models.ForeignKey(Bucket)
-    champion_id = models.IntegerField()
+    champion = models.ForeignKey('champions.Champion')
     last_update = models.DateTimeField(auto_now=True)
     
     sum_picks = models.BigIntegerField(blank=True, null=True)
@@ -61,7 +67,7 @@ class ChampionStats(models.Model):
     sum_kills = models.BigIntegerField(blank=True, null=True)
     avg_kills = models.FloatField(blank=True, null=True)
     sum_deaths = models.BigIntegerField(blank=True, null=True)
-    avg_death = models.FloatField(blank=True, null=True)
+    avg_deaths = models.FloatField(blank=True, null=True)
     sum_assists = models.BigIntegerField(blank=True, null=True)
     avg_assists = models.FloatField(blank=True, null=True)
     sum_largest_killing_spree = models.BigIntegerField(blank=True, null=True)
@@ -79,8 +85,8 @@ class ChampionStats(models.Model):
     sum_neutral_minions_killed_enemy_jungle = models.BigIntegerField(blank=True, null=True)
     avg_neutral_minions_killed_enemy_jungle = models.FloatField(blank=True, null=True)
     # CS obtained from friendly jungle
-    sum_neutral_minions_killed_friendly_jungle = models.BigIntegerField(blank=True, null=True)
-    avg_neutral_minions_killed_friendly_jungle = models.FloatField(blank=True, null=True)
+    sum_neutral_minions_killed_team_jungle = models.BigIntegerField(blank=True, null=True)
+    avg_neutral_minions_killed_team_jungle = models.FloatField(blank=True, null=True)
     sum_gold_earned = models.BigIntegerField(blank=True, null=True)
     avg_gold_earned = models.FloatField(blank=True, null=True)
     # TODO: Develop metrics based on weighting of different stats per role
@@ -91,12 +97,12 @@ class ChampionStats(models.Model):
     objects = ChampionStatsManager()
 
     class Meta:
-        unique_together = ['bucket', 'champion_id']
+        unique_together = ['bucket', 'champion']
 
     def __str__(self):
         champion_model = apps.get_model('champions', 'Champion')
         return '[{}] {} V:{}  L:{} R:{}'.format(self.bucket.region,
-                                                champion_model.objects.get(champion_id=self.champion_id),
+                                                self.champion,
                                                 self.bucket.version,
                                                 self.bucket.lane,
                                                 self.bucket.role)

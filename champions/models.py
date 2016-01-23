@@ -267,7 +267,7 @@ class Champion(models.Model):
 
         ChampionStats.objects.upsert(lane=lane, role=role, version=version,
                                      is_exact_version=complete_version,
-                                     region=region, champion_id=self.champion_id,
+                                     region=region, champion=self,
                                      update_fields={'{}_{}'.format(op.lower(), field): result})
 
         return result
