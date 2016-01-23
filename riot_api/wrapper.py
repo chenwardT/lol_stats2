@@ -156,12 +156,16 @@ class RiotAPI:
     #
     # This stands in contrast to us getting 5 matches from before the presently known
     # matches and that occurred since the last fetch (what are the odds of this case?)
+    #
+    # With development key: ~4 min / 100 matches retrieved + stored,
+    # using max_matches=10.
+    #
     # TODO: Consider removal of all ranked_queues options besides solo queue.
     @staticmethod
     def get_match_list(summoner_id, region=None, champion_ids=None,
                        ranked_queues='TEAM_BUILDER_DRAFT_RANKED_5x5',
                        season=None, begin_time=None, end_time=None, begin_index=None,
-                       end_index=None, max_matches=7):
+                       end_index=None, max_matches=10):
         """
         Gets all matches that satisfy the filters (args) for the specified summoner ID.
 
