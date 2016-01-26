@@ -11,7 +11,7 @@ VALID_LANE_ROLE_COMBOS = [
     {'lane': 'MIDDLE', 'role': 'DUO_CARRY'},
     {'lane': 'MIDDLE', 'role': 'DUO_SUPPORT'},
     {'lane': 'MIDDLE', 'role': 'NONE'},
-    {'lane': 'MIDDLE', 'role': 'SOLO',          'alias': 'Mid'},
+    {'lane': 'MIDDLE', 'role': 'SOLO',          'alias': 'Middle'},
 
     {'lane': 'BOTTOM', 'role': 'DUO'},
     {'lane': 'BOTTOM', 'role': 'DUO_CARRY',     'alias': 'ADC'},
