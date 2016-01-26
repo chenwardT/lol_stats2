@@ -58,7 +58,7 @@ riot_watcher = RiotWatcher(RIOT_API_KEY)
 # TODO: Move tasks into separate modules.
 # TODO: Create separate task for static API calls (not counted against rate limit).
 
-@app.task(bind=True, ignore_result=False, rate_limit='.8/s', max_retries=3,
+@app.task(bind=True, ignore_result=False, rate_limit='.7/s', max_retries=3,
           default_retry_delay=RIOT_API_RETRY_DELAY)
 def riot_api(self, kwargs):
     """
@@ -98,7 +98,7 @@ def riot_api(self, kwargs):
         elif e == error_401:
             logger.error('401 error')
         elif e == error_403:
-            logger.critical('403 error, KEY REVOKED!')
+            logger.critical('403 error, KEY REVOKED! Temporarily?')
         elif e == error_404:
             logger.info('404 error')
         elif e == error_429:
