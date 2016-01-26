@@ -160,10 +160,9 @@ class RiotAPI:
     # With development key: ~4 min / 100 matches retrieved + stored,
     # using max_matches=10.
     #
-    # TODO: Consider removal of all ranked_queues options besides solo queue.
     @staticmethod
     def get_match_list(summoner_id, region=None, champion_ids=None,
-                       ranked_queues='TEAM_BUILDER_DRAFT_RANKED_5x5',
+                       ranked_queues='RANKED_SOLO_5x5,TEAM_BUILDER_DRAFT_RANKED_5x5',
                        season=None, begin_time=None, end_time=None, begin_index=None,
                        end_index=None, max_matches=10):
         """
@@ -179,7 +178,12 @@ class RiotAPI:
         """
         logger.info('Getting matches for {} [{}]'.format(summoner_id, region))
 
-        _ALLOWED_QUEUES = ('RANKED_SOLO_5x5', 'RANKED_TEAM_5x5', 'TEAM_BUILDER_DRAFT_RANKED_5x5')
+        # TODO: Consider submitting PR for riotwatcher to allow iterables for potentially
+        # multi-valued args.
+        _ALLOWED_QUEUES = ('RANKED_SOLO_5x5',
+                           'TEAM_BUILDER_DRAFT_RANKED_5x5',
+                           'TEAM_BUILDER_DRAFT_RANKED_5x5,RANKED_SOLO_5x5',
+                           'RANKED_SOLO_5x5,TEAM_BUILDER_DRAFT_RANKED_5x5')
 
         if isinstance(ranked_queues, str):
             ranked_queues = [ranked_queues]
