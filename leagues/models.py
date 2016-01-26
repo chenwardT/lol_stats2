@@ -115,6 +115,7 @@ class LeagueEntryManager(models.Manager):
         logger.debug('Bulk created {} league entries'.format(len(flattened_entries)))
 
     def get_summoner_ids_by_min_tier(self, region, tier):
+        # TODO: Use __in instead.
         bronze = Q(league__tier='BRONZE')
         silver = Q(league__tier='SILVER')
         gold = Q(league__tier='GOLD')
@@ -147,6 +148,14 @@ class LeagueEntryManager(models.Manager):
                    .filter(complete_tier_filter) \
                    .values_list('player_or_team_id', flat=True) \
                    .distinct()
+
+    def get_summoner_ids_by_tier(self, region, tier):
+        return self.filter(league__region=region) \
+            .exclude(league__queue='RANKED_TEAM_5x5') \
+            .exclude(player_or_team_id__contains='TEAM') \
+            .filter(league__tier=tier.upper()) \
+            .values_list('player_or_team_id', flat=True) \
+            .distinct()
 
 
 class LeagueEntry(models.Model):
