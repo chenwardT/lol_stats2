@@ -152,7 +152,8 @@ def update_summoners(summoners=None, region=None):
 
 
 def get_matches_for_leagues(leagues=None, region=None,
-                            ranked_queues='RANKED_SOLO_5x5', num_matches=10):
+                            ranked_queues='RANKED_SOLO_5x5,TEAM_BUILDER_DRAFT_RANKED_5x5',
+                            max_matches=10):
     known_summoners = []
     unknown_summoners = []
 
@@ -190,14 +191,16 @@ def get_matches_for_leagues(leagues=None, region=None,
 
     print('Part 2: Get matches')
     print('At most, {} queries will be made to fetch {} matches.'.format(
-        len(known_summoners) * (num_matches + 1),
-        len(known_summoners) * num_matches))
+        len(known_summoners) * (max_matches + 1),
+        len(known_summoners) * max_matches))
 
     response = input('Proceed? (y/[n])\n')
 
     if response == 'y':
         for summoner_id in known_summoners:
-            RiotAPI.get_match_list(summoner_id, region, ranked_queues=ranked_queues)
+            RiotAPI.get_match_list(summoner_id, region,
+                                   ranked_queues=ranked_queues,
+                                   max_matches=max_matches)
 
 
 def get_leagues_for_summoner_ids(ids=None, region=None):
