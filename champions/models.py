@@ -1,5 +1,6 @@
 import logging
 
+from tqdm import tqdm
 from django.db import models
 from django.apps import apps
 from django.db.models import Sum, Avg
@@ -25,6 +26,12 @@ class ChampionManager(models.Manager):
                                key=attrs['key'])
 
         return champion
+
+    def full_agg_for_all(self, version):
+        with tqdm(total=self.count()) as pbar:
+            for champ in self.all():
+                champ.full_agg(version)
+                pbar.update(1)
 
 class Champion(models.Model):
     """
@@ -298,7 +305,8 @@ class Champion(models.Model):
     # TODO: Could be rewritten using partial from functools, or a closure.
     def get_significant_positions(self, version, force_update=False, pct=.10):
         """
-        Returns a list of positions that this champion is commonly played in.
+        Returns a list of SignificantPositions objects that represent the lanes and roles
+        that this champion is commonly played in.
 
         See Champion.is_significant_position.
         """
@@ -327,6 +335,26 @@ class Champion(models.Model):
             results = SignificantPosition.objects.bulk_create(sigpos_objs)
 
             return results
+
+    def full_agg(self, version):
+        """
+        Calls all aggregation methods for this champion, using significant lane-role
+        combinations, the specified version and across all regions.
+        """
+
+        # TODO: Win rate, pick rate, ban rate, avg times picked across all players,
+        # misc field aggs.
+
+        total_iter = self.get_significant_positions(version).count() * \
+                     len(Champion.aggregable_participant_fields)
+
+        with tqdm(total=total_iter, nested=True) as pbar:
+            for combo in self.get_significant_positions(version=version):
+                for field in Champion.aggregable_participant_fields:
+                    self.participant_field_agg(field, 'avg', lane=combo.lane, role=combo.role,
+                                               version='6.1')
+                    pbar.update(1)
+
 
 class SignificantPosition(models.Model):
     """
