@@ -1,7 +1,8 @@
 import logging
+import json
 
 from django.shortcuts import render, redirect
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.http import JsonResponse, HttpResponseBadRequest
 from rest_framework import viewsets
 from rest_framework.pagination import PageNumberPagination
@@ -10,8 +11,12 @@ from .models import Summoner
 from .serializers import SummonerSerializer
 from .forms import SearchForm
 from cache.summoners import SingleSummoner
+from utils.functions import standardize_name
+from utils.constants import REGIONS
 
 logger = logging.getLogger(__name__)
+
+SUMMONER_NOT_FOUND_PK = -1
 
 
 class SummonerResultsSetPagination(PageNumberPagination):
@@ -33,6 +38,7 @@ def index(request):
 
 
 def search(request):
+    print(request.body)
     if request.method == 'POST':
         form = SearchForm(request.POST)
 
@@ -42,6 +48,35 @@ def search(request):
         form = SearchForm()
         return render(request, 'summoners/search.html', {'form': form})
 
+def query_is_valid(query):
+    if 'name' in query and 'region' in query:
+        region = query['region']
+
+        if region in REGIONS:
+            return True
+
+    return False
+
+@csrf_exempt
+def get_pk_from_region_and_summoner(request):
+    """
+    Returns a Summoner PK given a region and summoner name.
+    """
+    query = json.loads(request.body.decode('utf-8'))
+    print(repr(query))
+
+    if query_is_valid(query):
+        summoner = Summoner.objects.filter(region=query['region'],
+                                           std_name=standardize_name(query['name']))
+
+        if summoner.exists():
+            data = summoner.values('id', 'region', 'name')[0]
+        else:
+            data = SUMMONER_NOT_FOUND_PK
+
+        return JsonResponse(data)
+    else:
+        return HttpResponseBadRequest('Invalid request')
 
 @ensure_csrf_cookie
 def show(request, name, region):

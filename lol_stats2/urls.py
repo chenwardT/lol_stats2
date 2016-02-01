@@ -2,7 +2,7 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 from rest_framework import routers
 
-from summoners.views import SummonerViewSet, index, search, show, refresh
+from summoners.views import SummonerViewSet, index, search, show, refresh, get_pk_from_region_and_summoner
 from champions.views import ChampionViewSet
 from matches.views import MatchDetailViewSet, MatchListForSummoner
 from leagues.views import LeagueViewSet, LeagueEntryForSummoner
@@ -31,6 +31,8 @@ urlpatterns = patterns('',
     url(r'^refresh/', refresh, name='refresh'),
     url(r'^task-status/', task_status, name='task_status'),
     url(r'^summoner-refreshable', is_summoner_refreshable, name='summoner_refreshable'),
+
+    url(r'get_pk/', get_pk_from_region_and_summoner, name='get_pk'),
 
     url(r'^grappelli/', include('grappelli.urls')),
     url(r'^admin/', include(admin.site.urls)),
