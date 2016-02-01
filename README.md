@@ -1,5 +1,8 @@
 #lol_stats2
 
+_This is the data-harvesting, number-crunching, REST-serving backend.
+The frontend can be found here: https://github.com/chenwardT/lol_stats2-frontend_
+
 > "There is an epidemic failure within the game to understand what is really happening"
 > 
 > --Peter Brand (Jonah Hill), "Moneyball"
@@ -20,7 +23,7 @@ a distributed task queue. It is uses `RabbitMQ` as its broker and `Redis` as a r
 store.
         
 Stored data is exposed via [`Django-Rest-Framework`](http://www.django-rest-framework.org/)
-with plans for consumption via a JS frontend.
+with and consumed by a JS frontend.
 
 Analytical techniques to follow once functionality regarding retrieval, storage, and 
 processing of data is solidified.
