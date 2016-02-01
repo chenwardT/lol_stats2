@@ -11,19 +11,11 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
-from django.core.exceptions import ImproperlyConfigured
 from kombu import Queue
 
 from .secrets import DJANGO_SECRET_KEY, PG_USER, PG_PASS
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-
-def get_env_variable(var_name):
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        error_msg = "Set the %s environment variable" % var_name
-        raise ImproperlyConfigured(error_msg)
 
 SECRET_KEY = DJANGO_SECRET_KEY
 
