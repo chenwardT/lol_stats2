@@ -14,7 +14,8 @@ from lol_stats2.celery import (app,
                                store_summoners,
                                store_league,
                                store_champion_list,
-                               store_summoner_spell_list)
+                               store_summoner_spell_list,
+                               store_item_match_list)
 from matches.models import MatchDetail
 from summoners.models import Summoner
 
@@ -71,6 +72,16 @@ class RiotAPI:
                   'spell_data': spell_data}
 
         return chain(riot_api.s(kwargs), store_summoner_spell_list.s())()
+
+    @app.task
+    def static_get_item_list(region=None, locale=None, version=None, item_list_data=None):
+        kwargs = {'method': 'static_get_item_list',
+                  'region': region,
+                  'locale': locale,
+                  'version': version,
+                  'item_list_data': item_list_data}
+
+        return chain(riot_api.s(kwargs), store_item_match_list.s())()
 
     # Unused, see Game vs MatchDetail (this is unranked matches)
     @staticmethod

@@ -30,6 +30,7 @@ from champions.models import Champion
 from spells.models import SummonerSpell
 from leagues.models import League
 from matches.models import MatchDetail
+from items.models import Item
 from lol_stats2.settings.secrets import RIOT_API_KEY
 
 # Currently only used in the event of a 5xx HTTP response code from Riot's API.
@@ -277,7 +278,6 @@ def store_league(result, region):
         else:
             return False
 
-
 @app.task
 def store_match(result):
     """
@@ -294,4 +294,18 @@ def store_match(result):
         logger.info('Stored match %s (create time: %s)', created, created.match_date())
         return True
     else:
+        return False
+
+@app.task
+def store_item_match_list(result):
+    """
+    Callback that stores the result of RiotWatcher static_get_item_list calls.
+    Creates instances of Item models.
+    """
+    if result != {}:
+        created = Item.objects.bulk_create_items(result['data'])
+        logger.info('Stored %s items', created)
+        return True
+    else:
+        logger.warning('Empty result dict!')
         return False
