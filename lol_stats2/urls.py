@@ -5,15 +5,18 @@ from rest_framework import routers
 from summoners.views import SummonerViewSet, index, search, show, refresh, get_pk_from_region_and_summoner
 from champions.views import ChampionViewSet
 from matches.views import MatchDetailViewSet, MatchListForSummoner
+from items.views import ItemViewSet
 from leagues.views import LeagueViewSet, LeagueEntryForSummoner
 from cache.views import task_status, is_summoner_refreshable
 from stats.views import ChampionStatsByVersion
+from static_data.views import StaticData
 
 router = routers.DefaultRouter()
 router.register(r'summoners', SummonerViewSet)
 router.register(r'champions', ChampionViewSet)
 router.register(r'matchdetails', MatchDetailViewSet)
 router.register(r'leagues', LeagueViewSet)
+router.register(r'items', ItemViewSet)
 
 admin.autodiscover()
 
