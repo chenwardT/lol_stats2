@@ -25,9 +25,6 @@ store.
 Stored data is exposed via [`Django-Rest-Framework`](http://www.django-rest-framework.org/)
 with and consumed by a JS frontend.
 
-Analytical techniques to follow once functionality regarding retrieval, storage, and 
-processing of data is solidified.
-
 This project and its author are not affiliated with Riot Games.
 
 ##Setup
