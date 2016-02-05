@@ -12,4 +12,4 @@ class ChampionResultsSetPagination(PageNumberPagination):
 class ChampionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Champion.objects.all()
     serializer_class = ChampionSerializer
-    pagination_class = ChampionResultsSetPagination
+    # pagination_class = ChampionResultsSetPagination
