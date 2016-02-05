@@ -7,6 +7,7 @@ from champions.views import ChampionViewSet
 from matches.views import MatchDetailViewSet, MatchListForSummoner
 from items.views import ItemViewSet
 from leagues.views import LeagueViewSet, LeagueEntryForSummoner
+from spells.views import SummonerSpellViewSet
 from cache.views import task_status, is_summoner_refreshable
 from stats.views import ChampionStatsByVersion
 from static_data.views import StaticData
@@ -17,6 +18,7 @@ router.register(r'champions', ChampionViewSet)
 router.register(r'matchdetails', MatchDetailViewSet)
 router.register(r'leagues', LeagueViewSet)
 router.register(r'items', ItemViewSet)
+router.register(r'spells', SummonerSpellViewSet)
 
 admin.autodiscover()
 
