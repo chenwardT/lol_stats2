@@ -1,3 +1,8 @@
-from django.shortcuts import render
+from rest_framework import viewsets
 
-# Create your views here.
+from .models import SummonerSpell
+from .serializers import SummonerSpellSerializer
+
+class SummonerSpellViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = SummonerSpell.objects.all()
+    serializer_class = SummonerSpellSerializer
